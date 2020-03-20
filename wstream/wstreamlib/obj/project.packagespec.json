@@ -31,6 +31,12 @@
   },
   "frameworks": {
     "netcoreapp3.1": {
+      "dependencies": {
+        "VIEApps.Components.WebSockets": {
+          "target": "Package",
+          "version": "[10.3.2003.4, )"
+        }
+      },
       "imports": [
         "net461",
         "net462",
