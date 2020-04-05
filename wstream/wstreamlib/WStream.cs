@@ -23,7 +23,7 @@ namespace wstreamlib
             }
 
             var wSock = _factory.ConnectAsync(uri, opt, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
-            return new WsConnection(wSock);
+            return new WsConnection(wSock.Item1, wSock.Item2);
         }
     }
 }

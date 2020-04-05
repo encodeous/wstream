@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -14,12 +15,13 @@ namespace wstreamlib
         public readonly Guid ConnectionId;
         internal WebSocketImplementation Socket;
         public bool Connected { get; private set; }
+        public delegate void ConnectionCloseDelegate(WsConnection connection);
+        public event ConnectionCloseDelegate ConnectionClosedEvent;
+        public readonly Socket UnderlyingSocket;
 
-        public delegate void ConnectionCloseDelegate(Guid id);
-        public event ConnectionCloseDelegate OnConnectionClosed;
-
-        public WsConnection(WebSocket wsock)
+        public WsConnection(WebSocket wsock, Socket underlyingSocket)
         {
+            UnderlyingSocket = underlyingSocket;
             Connected = true;
             Socket = (WebSocketImplementation) wsock;
             ConnectionId = Socket._guid;
@@ -29,13 +31,18 @@ namespace wstreamlib
         private void ConnectionClose()
         {
             Connected = false;
-            OnConnectionClosed?.Invoke(ConnectionId);
+            ConnectionClosedEvent?.Invoke(this);
             Dispose();
         }
 
         public int Read(ArraySegment<byte> buf)
         {
-            return Socket.Receive(buf, CancellationToken.None).Count;
+            var val = Socket.Receive(buf, CancellationToken.None);
+            if (val.CloseStatus.HasValue)
+            {
+                return 0;
+            }
+            return val.Count;
         }
         public void Write(ArraySegment<byte> buf)
         {

@@ -36,7 +36,7 @@ namespace wstreamlib.Ninja.WebSockets.Internal
     {
         internal readonly Guid _guid;
         private readonly Func<MemoryStream> _recycledStreamFactory;
-        private readonly Stream _stream;
+        internal readonly Stream _stream;
         private readonly bool _includeExceptionInCloseResponse;
         private readonly bool _isClient;
         private readonly string _subProtocol;

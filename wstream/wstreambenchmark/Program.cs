@@ -27,14 +27,21 @@ namespace wstreambenchmark
             {
                 var tunnel = server.AcceptConnectionAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                 ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[_bufferSize]);
-                while (tunnel.Connected)
+                try
                 {
-                    if (buffer.Array.Length != _bufferSize)
+                    while (tunnel.Connected)
                     {
-                        buffer = new ArraySegment<byte>(new byte[_bufferSize]);
+                        if (buffer.Array.Length != _bufferSize)
+                        {
+                            buffer = new ArraySegment<byte>(new byte[_bufferSize]);
+                        }
+                        int len = tunnel.Read(buffer);
+                        tunnel.Write(buffer.Slice(0, len));
                     }
-                    int len = tunnel.Read(buffer);
-                    tunnel.Write(buffer.Slice(0, len));
+                }
+                catch
+                {
+                    tunnel.Close();
                 }
             }
         }
@@ -45,7 +52,7 @@ namespace wstreambenchmark
             for (int i = 14; i < 25; i++)
             {
                 _bufferSize = (int)Math.Pow(2, i);
-                var tunnel = client.Connect(new Uri("ws://localhost:12345"), CancellationToken.None);
+                var tunnel = client.Connect(new Uri("http://localhost:12345"),CancellationToken.None);
                 long bytes = (long)Math.Pow(2,30);
                 long byteSent = 0;
                 long byteReceived = 0;

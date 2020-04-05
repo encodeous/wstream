@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +18,7 @@ namespace wstreamlib.Ninja.WebSockets
         /// <param name="uri">The WebSocket uri to connect to (e.g. ws://example.com or wss://example.com for SSL)</param>
         /// <param name="token">The optional cancellation token</param>
         /// <returns>A connected web socket instance</returns>
-        Task<WebSocket> ConnectAsync(Uri uri, CancellationToken token = default(CancellationToken));
+        Task<(WebSocket, Socket)> ConnectAsync(Uri uri, CancellationToken token = default(CancellationToken));
 
         /// <summary>
         /// Connect with options specified
@@ -26,7 +27,7 @@ namespace wstreamlib.Ninja.WebSockets
         /// <param name="options">The WebSocket client options</param>
         /// <param name="token">The optional cancellation token</param>
         /// <returns>A connected web socket instance</returns>
-        Task<WebSocket> ConnectAsync(Uri uri, WebSocketClientOptions options, CancellationToken token = default(CancellationToken));
+        Task<(WebSocket, Socket)> ConnectAsync(Uri uri, WebSocketClientOptions options, CancellationToken token = default(CancellationToken));
 
         /// <summary>
         /// Connect with a stream that has already been opened and HTTP websocket upgrade request sent

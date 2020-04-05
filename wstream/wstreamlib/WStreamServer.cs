@@ -3,9 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
@@ -73,7 +75,7 @@ namespace wstreamlib
                 if (_cert != null)
                 {
                     stream = new SslStream(stream,false);
-                    await ((SslStream) stream).AuthenticateAsServerAsync(_cert,false, true).ConfigureAwait(false);
+                    await ((SslStream) stream).AuthenticateAsServerAsync(_cert,false, SslProtocols.Tls13, true).ConfigureAwait(false);
                 }
                 WebSocketHttpContext context = await _factory.ReadHttpHeaderFromStreamAsync(stream).ConfigureAwait(false);
                 var eventArg = new WStreamPreConnection {Context = context};
@@ -83,8 +85,8 @@ namespace wstreamlib
                     if (!eventArg.IsCancelled)
                     {
                         WebSocket wsi = await _factory.AcceptWebSocketAsync(context).ConfigureAwait(false);
-                        var conn = new WsConnection(wsi);
-                        conn.OnConnectionClosed += OnConnectionClosed;
+                        var conn = new WsConnection(wsi,sock);
+                        conn.ConnectionClosedEvent += ConnectionClosedEvent;
                         ActiveConnections[conn.ConnectionId] = conn;
                         return conn;
                     }
@@ -101,11 +103,11 @@ namespace wstreamlib
             return null;
         }
 
-        private void OnConnectionClosed(Guid id)
+        private void ConnectionClosedEvent(WsConnection connection)
         {
-            if (ActiveConnections.ContainsKey(id))
+            if (ActiveConnections.ContainsKey(connection.ConnectionId))
             {
-                ActiveConnections.Remove(id);
+                ActiveConnections.Remove(connection.ConnectionId);
             }
         }
 
