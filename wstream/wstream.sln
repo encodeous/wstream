@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "wstreamlib", "wstreamlib\wstreamlib.csproj", "{7A331EC6-FFF4-4B81-B585-791079384E57}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WSTest", "WSTest\WSTest.csproj", "{C10A2553-6C63-497A-BC82-CED9662F4A70}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "wstreambenchmark", "wstreambenchmark\wstreambenchmark.csproj", "{2DA629D3-1DB0-44EA-A7C4-36BA6ACAE4DD}"
 EndProject
 Global
@@ -19,10 +17,6 @@ Global
 		{7A331EC6-FFF4-4B81-B585-791079384E57}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7A331EC6-FFF4-4B81-B585-791079384E57}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7A331EC6-FFF4-4B81-B585-791079384E57}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C10A2553-6C63-497A-BC82-CED9662F4A70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C10A2553-6C63-497A-BC82-CED9662F4A70}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C10A2553-6C63-497A-BC82-CED9662F4A70}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C10A2553-6C63-497A-BC82-CED9662F4A70}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2DA629D3-1DB0-44EA-A7C4-36BA6ACAE4DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2DA629D3-1DB0-44EA-A7C4-36BA6ACAE4DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2DA629D3-1DB0-44EA-A7C4-36BA6ACAE4DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
