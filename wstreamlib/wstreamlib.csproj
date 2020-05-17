@@ -4,6 +4,10 @@
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>8</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Authors>Encodeous</Authors>
+        <Description>Provides a wrapper for simple high performance websockets</Description>
+        <PackageProjectUrl>https://github.com/encodeous/wstream</PackageProjectUrl>
     </PropertyGroup>
 
 </Project>
