@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,14 +20,18 @@ namespace wstreamlib
         public delegate void ConnectionCloseDelegate(WsConnection connection);
         public event ConnectionCloseDelegate ConnectionClosedEvent;
         public readonly Socket UnderlyingSocket;
+        public X509Certificate ServerCertificate;
+        public EndPoint RemoteEndPoint;
 
-        public WsConnection(WebSocket wsock, Socket underlyingSocket)
+        public WsConnection(WebSocket wsock, Socket underlyingSocket, X509Certificate cert)
         {
             UnderlyingSocket = underlyingSocket;
             Connected = true;
             Socket = (WebSocketImplementation) wsock;
             ConnectionId = Socket._guid;
+            ServerCertificate = cert;
             Socket.ConnectionClose = ConnectionClose;
+            RemoteEndPoint = underlyingSocket.RemoteEndPoint;
         }
 
         private void ConnectionClose()
@@ -60,6 +66,7 @@ namespace wstreamlib
             {
                 Connected = false;
                 Socket.CloseAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None).ConfigureAwait(false);
+                Socket.Dispose();
                 Dispose();
             }
         }

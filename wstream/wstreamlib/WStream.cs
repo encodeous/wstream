@@ -14,7 +14,7 @@ namespace wstreamlib
             _factory = new WebSocketClientFactory();
         }
 
-        public WsConnection Connect(Uri uri, CancellationToken cancellationToken, Dictionary<string, string> headers = null)
+        public WsConnection Connect(Uri uri, CancellationToken cancellationToken,  Dictionary<string, string> headers = null)
         {
             var opt = new WebSocketClientOptions();
             if (headers != null)
@@ -23,7 +23,7 @@ namespace wstreamlib
             }
 
             var wSock = _factory.ConnectAsync(uri, opt, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
-            return new WsConnection(wSock.Item1, wSock.Item2);
+            return new WsConnection(wSock.Item1, wSock.Item2, wSock.Item3);
         }
     }
 }

@@ -14,8 +14,12 @@ namespace wstreambenchmark
             WStreamServer server = new WStreamServer();
             server.Listen(new IPEndPoint(IPAddress.Any, 12345));
             WStream wsClient = new WStream();
-            new Thread(() => ServerThread(server)).Start();
-            new Thread(() => ClientThread(wsClient)).Start();
+            var a = new Thread(() => ServerThread(server));
+            var b = new Thread(() => ClientThread(wsClient));
+            a.Priority = ThreadPriority.Highest;
+            b.Priority = ThreadPriority.Highest;
+            a.Start();
+            b.Start();
             Thread.Sleep(-1);
         }
 
@@ -48,22 +52,25 @@ namespace wstreambenchmark
 
         private static void ClientThread(WStream client)
         {
-            Console.WriteLine("Sending 10gb of data with various packet sizes and waiting for response.");
+            long bytes = (long)Math.Pow(2,30);
+            Console.WriteLine($"Sending {bytes:n} bytes of data with various packet sizes and waiting for response.");
             for (int i = 14; i < 25; i++)
             {
                 _bufferSize = (int)Math.Pow(2, i);
                 var tunnel = client.Connect(new Uri("http://localhost:12345"),CancellationToken.None);
-                long bytes = (long)Math.Pow(2,30);
                 long byteSent = 0;
                 long byteReceived = 0;
                 long messagesSent = 0;
-                DateTime timeNow = DateTime.Now;
                 ArraySegment<byte> sbuf = new ArraySegment<byte>(new byte[_bufferSize]);
+                buffer = new byte[_bufferSize];
+                rng.NextBytes(buffer);
+
+                DateTime timeNow = DateTime.Now;
                 while ((byteSent < bytes || byteReceived < bytes) && tunnel.Connected)
                 {
                     if (byteSent < bytes)
                     {
-                        Send(_bufferSize, tunnel);
+                        Send(tunnel);
                         byteSent += _bufferSize;
                         messagesSent++;
                     }
@@ -75,8 +82,9 @@ namespace wstreambenchmark
                     }
                 }
                 DateTime timeEnd = DateTime.Now;
+
                 TimeSpan span = timeEnd - timeNow;
-                Console.WriteLine($"{_bufferSize} Elapsed {span}, {bytes/span.TotalSeconds} bytes / second, {messagesSent/span.TotalSeconds} messages / second.");
+                Console.WriteLine($"Buf: {_bufferSize:n} Elapsed {span}, {bytes / span.TotalSeconds:n} bytes / second @ {messagesSent/span.TotalSeconds:n} messages / second.");
                 tunnel.Close();
                 client = new WStream();
             }
@@ -84,13 +92,8 @@ namespace wstreambenchmark
 
         private static byte[] buffer;
 
-        private static void Send(int size, WsConnection connection)
+        private static void Send(WsConnection connection)
         {
-            if (buffer == null || buffer.Length != size)
-            {
-                buffer = new byte[size];
-                rng.NextBytes(buffer);
-            }
             connection.Write(buffer);
         }
     }

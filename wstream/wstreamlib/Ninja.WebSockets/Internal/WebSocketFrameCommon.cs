@@ -61,17 +61,23 @@ namespace wstreamlib.Ninja.WebSockets.Internal
                     payload.Offset, payload.Count);
             }
         }
-        public static unsafe void ToggleMask32(byte[] key, int maskKeyOffset, byte[] payload, int payloadOffset, int payloadLength)
+        public static unsafe void ToggleMask32(byte[] key, int maskKeyOffset, byte[] payload, int payloadOffset,
+            int payloadLength)
         {
             int chunks = payloadLength / 4;
             fixed (byte* keyBytes = key)
             {
                 fixed (byte* payloadBytes = payload)
                 {
-                    int* key32 = (int*)keyBytes;
-                    int* bytes32 = (int*)payloadBytes;
-                    key32 += maskKeyOffset;
-                    bytes32 += payloadOffset;
+                    byte* keyPtr = keyBytes;
+                    keyPtr += maskKeyOffset;
+
+                    byte* payloadPtr = payloadBytes;
+                    payloadPtr += payloadOffset;
+
+                    int* key32 = (int*) keyPtr;
+                    int* bytes32 = (int*) payloadPtr;
+
                     for (int p = 0; p < chunks; p++)
                     {
                         *bytes32 ^= *key32;
@@ -79,30 +85,38 @@ namespace wstreamlib.Ninja.WebSockets.Internal
                     }
                 }
             }
+
             for (int index = chunks * 4; index < payloadLength; index++)
             {
                 payload[index] ^= key[index % 4];
             }
         }
-        public static unsafe void ToggleMask64(byte[] key, int maskKeyOffset, byte[] payload, int payloadOffset, int payloadLength)
+
+        public static unsafe void ToggleMask64(byte[] key, int maskKeyOffset, byte[] payload, int payloadOffset,
+            int payloadLength)
         {
             byte* keyDup = stackalloc byte[8];
             for (int i = 0; i < 8; i++)
             {
-                keyDup[i] = key[(i % 4) + maskKeyOffset];
+                keyDup[i] = key[(i % MaskKeyLength) + maskKeyOffset];
             }
+
             int chunks = payloadLength / 8;
             fixed (byte* payloadBytes = payload)
             {
-                long* key64 = (long*)keyDup;
-                long* bytes64 = (long*)payloadBytes;
-                bytes64 += payloadOffset;
+                byte* payloadPtr = payloadBytes;
+                payloadPtr += payloadOffset;
+
+                long* key64 = (long*) keyDup;
+                long* bytes64 = (long*) payloadPtr;
+
                 for (int p = 0; p < chunks; p++)
                 {
                     *bytes64 ^= *key64;
                     bytes64++;
                 }
             }
+
             for (int index = chunks * 8; index < payloadLength; index++)
             {
                 payload[index] ^= keyDup[index % 8];

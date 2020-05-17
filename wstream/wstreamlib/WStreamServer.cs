@@ -12,6 +12,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using wstreamlib.Ninja.WebSockets;
+using wstreamlib.Ninja.WebSockets.Internal;
 
 namespace wstreamlib
 {
@@ -19,7 +20,7 @@ namespace wstreamlib
     {
         public Dictionary<Guid, WsConnection> ActiveConnections;
         private readonly WebSocketServerFactory _factory;
-        private X509Certificate2 _cert;
+        private X509Certificate _cert;
 
         public TcpListener Listener;
         public delegate void WStreamPreConnectionDelegate(WStreamPreConnection connection);
@@ -35,7 +36,7 @@ namespace wstreamlib
                 $"HTTP/1.1 404 Not Found\r\nDate: {DateTime.Now.ToUniversalTime():r}\r\nServer: wstream\r\n\r\n{Config.Version}";
         }
 
-        public void Listen(IPEndPoint endpoint, X509Certificate2 certificate = null)
+        public void Listen(IPEndPoint endpoint, X509Certificate certificate = null)
         {
             _cert = certificate;
             Listener = new TcpListener(endpoint);
@@ -84,8 +85,8 @@ namespace wstreamlib
                     PreConnectionEvent?.Invoke(eventArg);
                     if (!eventArg.IsCancelled)
                     {
-                        WebSocket wsi = await _factory.AcceptWebSocketAsync(context).ConfigureAwait(false);
-                        var conn = new WsConnection(wsi,sock);
+                        WebSocketImplementation wsi = (WebSocketImplementation) await _factory.AcceptWebSocketAsync(context).ConfigureAwait(false);
+                        var conn = new WsConnection(wsi, sock, _cert);
                         conn.ConnectionClosedEvent += ConnectionClosedEvent;
                         ActiveConnections[conn.ConnectionId] = conn;
                         return conn;

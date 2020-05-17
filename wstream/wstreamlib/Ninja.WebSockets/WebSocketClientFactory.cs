@@ -70,7 +70,7 @@ namespace wstreamlib.Ninja.WebSockets
         /// <param name="uri">The WebSocket uri to connect to (e.g. ws://example.com or wss://example.com for SSL)</param>
         /// <param name="token">The optional cancellation token</param>
         /// <returns>A connected web socket instance</returns>
-        public Task<(WebSocket, Socket)> ConnectAsync(Uri uri, CancellationToken token = default)
+        public Task<(WebSocket, Socket, X509Certificate)> ConnectAsync(Uri uri, CancellationToken token = default)
         {
             return ConnectAsync(uri, new WebSocketClientOptions(), token);
         }
@@ -82,15 +82,15 @@ namespace wstreamlib.Ninja.WebSockets
         /// <param name="options">The WebSocket client options</param>
         /// <param name="token">The optional cancellation token</param>
         /// <returns>A connected web socket instance</returns>
-        public async Task<(WebSocket, Socket)> ConnectAsync(Uri uri, WebSocketClientOptions options, CancellationToken token = default)
+        public async Task<(WebSocket, Socket, X509Certificate)> ConnectAsync(Uri uri, WebSocketClientOptions options, CancellationToken token = default)
         {
             Guid guid = Guid.NewGuid();
             string host = uri.Host;
             int port = uri.Port;
             string uriScheme = uri.Scheme.ToLower();
             bool useSsl = uriScheme == "wss" || uriScheme == "https";
-            (Stream, Socket) connection = await GetStreamAsync(guid, useSsl, options.NoDelay, host, port, token).ConfigureAwait(false);
-            return (await PerformHandshakeAsync(guid, uri, connection.Item1, options, token).ConfigureAwait(false),connection.Item2);
+            (Stream, Socket, X509Certificate) connection = await GetStreamAsync(guid, useSsl, options.NoDelay, host, port, token).ConfigureAwait(false);
+            return (await PerformHandshakeAsync(guid, uri, connection.Item1, options, token).ConfigureAwait(false),connection.Item2, connection.Item3);
         }
 
         /// <summary>
@@ -210,7 +210,7 @@ namespace wstreamlib.Ninja.WebSockets
         /// <param name="port">The destination port</param>
         /// <param name="cancellationToken">Used to cancel the request</param>
         /// <returns>A connected and open stream</returns>
-        protected virtual async Task<(Stream, Socket)> GetStreamAsync(Guid loggingGuid, bool isSecure, bool noDelay, string host, int port, CancellationToken cancellationToken)
+        protected virtual async Task<(Stream, Socket, X509Certificate)> GetStreamAsync(Guid loggingGuid, bool isSecure, bool noDelay, string host, int port, CancellationToken cancellationToken)
         {
             var tcpClient = new TcpClient {NoDelay = noDelay};
             if (IPAddress.TryParse(host, out var ipAddress))
@@ -235,12 +235,12 @@ namespace wstreamlib.Ninja.WebSockets
                 // This will throw an AuthenticationException if the certificate is not valid
                 TlsAuthenticateAsClient(sslStream, host);
                 Events.Log.ConnectionSecured(loggingGuid);
-                return (sslStream, tcpClient.Client);
+                return (sslStream, tcpClient.Client, sslStream.RemoteCertificate);
             }
             else
             {
                 Events.Log.ConnectionNotSecure(loggingGuid);
-                return (stream, tcpClient.Client);
+                return (stream, tcpClient.Client, null);
             }
         }
 
