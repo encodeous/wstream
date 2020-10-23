@@ -12,7 +12,7 @@ using wstreamlib.Ninja.WebSockets.Internal;
 
 namespace wstreamlib
 {
-    public class WsConnection : IDisposable
+    public class WsConnection : Stream
     {
         public readonly Guid ConnectionId;
         internal WebSocketImplementation Socket;
@@ -22,6 +22,17 @@ namespace wstreamlib
         public readonly Socket UnderlyingSocket;
         public X509Certificate ServerCertificate;
         public EndPoint RemoteEndPoint;
+
+        public override bool CanRead => Socket.State == WebSocketState.Open;
+        public override bool CanSeek => false;
+        public override bool CanWrite => Socket.State == WebSocketState.Open;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
 
         public WsConnection(WebSocket wsock, Socket underlyingSocket, X509Certificate cert)
         {
@@ -60,26 +71,47 @@ namespace wstreamlib
             Socket.Send(buf, WebSocketMessageType.Binary, true, cancellation);
         }
 
-        public void Close()
+        public override void Close()
         {
             if (Connected)
             {
                 Connected = false;
-                Socket.CloseAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None).ConfigureAwait(false);
+                Socket.CloseAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None).Wait();
                 Socket.Dispose();
                 Dispose();
             }
         }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool state)
+        protected override void Dispose(bool state)
         {
             Socket?.Dispose();
+        }
+
+        /// <summary>
+        /// This function is useless, all data is directly sent, there is no buffer
+        /// </summary>
+        public override void Flush()
+        {
+            
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            return Read(new ArraySegment<byte>(buffer, offset, count));
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            Write(new ArraySegment<byte>(buffer, offset, count));
         }
     }
 }
