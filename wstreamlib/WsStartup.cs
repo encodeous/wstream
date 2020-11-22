@@ -16,6 +16,7 @@ namespace wstreamlib
 {
     class WsStartup
     {
+        private WStreamServer _server;
         public WsStartup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -27,23 +28,31 @@ namespace wstreamlib
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddGrpc();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            _server = (WStreamServer)app.ApplicationServices.GetService(typeof(WStreamServer));
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
             app.UseRouting();
+            app.UseWebSockets();
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcService<WsBinaryServerService>();
                 endpoints.MapGet("/",
                     async context => {
-                        await context.Response.WriteAsync(Config.Version);
+                        if (context.WebSockets.IsWebSocketRequest)
+                        {
+                            _server.AddConnection(new WsConnection(await context.WebSockets.AcceptWebSocketAsync()));
+                        }
+                        else
+                        {
+                            await context.Response.WriteAsync(Config.Version);
+                        }
                     });
             });
         }
