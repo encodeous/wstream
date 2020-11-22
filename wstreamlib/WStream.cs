@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.WebSockets;
 using System.Threading;
-using Grpc.Net.Client;
+using System.Threading.Tasks;
 
 namespace wstreamlib
 {
@@ -11,17 +12,17 @@ namespace wstreamlib
         {
         }
 
-        public WsConnection Connect(Uri uri, bool useTls = true)
+        private ClientWebSocket _client;
+        public async Task<WsConnection> Connect(Uri uri)
         {
-            if (!useTls)
-            {
-                AppContext.SetSwitch(
-                    "System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-            }
-            var channel = GrpcChannel.ForAddress(uri);
-            var client = new WsBinary.WsBinaryClient(channel);
-            var stream = client.ExchangeBinary();
-            return new WsConnection(stream.ResponseStream, stream.RequestStream, channel);
+            _client = new ClientWebSocket();
+            await _client.ConnectAsync(uri, CancellationToken.None);
+            return new WsConnection(_client);
+        }
+
+        public async Task Close()
+        {
+            await _client.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
         }
     }
 }

@@ -36,11 +36,11 @@ namespace wstreamlib
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStaticWebAssets()
+                        .ConfigureServices(x => x.AddSingleton(this))
                         .UseStartup<WsStartup>()
-                        .ConfigureServices(x=>x.AddSingleton(this))
                         .ConfigureKestrel(options =>
                         {
-                            options.Listen(endpoint, o => o.Protocols = HttpProtocols.Http2);
+                            options.Listen(endpoint, o => o.Protocols = HttpProtocols.Http1);
                         });
                 }).Build();
             _host.RunAsync();

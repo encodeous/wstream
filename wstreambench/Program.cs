@@ -54,7 +54,7 @@ namespace wstreambench
             for (int i = 17; i < 25; i++)
             {
                 _bufferSize = (int)Math.Pow(2, i);
-                var tunnel = client.Connect(new Uri("http://localhost:12345"));
+                var tunnel = await client.Connect(new Uri("ws://localhost:12345"));
                 long byteSent = 0;
                 long byteReceived = 0;
                 long messagesSent = 0;
@@ -82,7 +82,7 @@ namespace wstreambench
 
                 TimeSpan span = timeEnd - timeNow;
                 Console.WriteLine($"Buf: {_bufferSize:n} Elapsed {span}, {bytes / span.TotalSeconds:n} bytes / second @ {messagesSent / span.TotalSeconds:n} messages / second.");
-                tunnel.Close();
+                await tunnel.Close();
                 client = new WStream();
             }
         }
