@@ -1,29 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using wstreamlib.Ninja.WebSockets;
+using Grpc.Net.Client;
 
 namespace wstreamlib
 {
     public class WStream
     {
-        private readonly WebSocketClientFactory _factory;
-
         public WStream()
         {
-            _factory = new WebSocketClientFactory();
         }
 
-        public WsConnection Connect(Uri uri, CancellationToken cancellationToken,  Dictionary<string, string> headers = null)
+        public WsConnection Connect(Uri uri, bool useTls = true)
         {
-            var opt = new WebSocketClientOptions();
-            if (headers != null)
+            if (!useTls)
             {
-                opt.AdditionalHttpHeaders = headers;
+                AppContext.SetSwitch(
+                    "System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
             }
-
-            var wSock = _factory.ConnectAsync(uri, opt, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
-            return new WsConnection(wSock.Item1, wSock.Item2, wSock.Item3);
+            var channel = GrpcChannel.ForAddress(uri);
+            var client = new WsBinary.WsBinaryClient(channel);
+            var stream = client.ExchangeBinary();
+            return new WsConnection(stream.ResponseStream, stream.RequestStream, channel);
         }
     }
 }

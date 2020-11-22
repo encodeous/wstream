@@ -1,0 +1,9 @@
+﻿syntax = "proto3";
+
+service WsBinary {
+	rpc ExchangeBinary (stream Binary) returns (stream Binary);
+}
+
+message Binary {
+	bytes data = 1;
+}

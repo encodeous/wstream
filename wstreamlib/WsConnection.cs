@@ -4,114 +4,131 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using wstreamlib.Ninja.WebSockets.Internal;
+using Google.Protobuf;
+using Grpc.Core;
+using Grpc.Net.Client;
+using Nito.AsyncEx;
+using Nito.AsyncEx.Synchronous;
 
 namespace wstreamlib
 {
-    public class WsConnection : Stream
+    public class WsConnection
     {
-        public readonly Guid ConnectionId;
-        internal WebSocketImplementation Socket;
+        public readonly Guid ConnectionId = Guid.NewGuid();
         public bool Connected { get; private set; }
         public delegate void ConnectionCloseDelegate(WsConnection connection);
         public event ConnectionCloseDelegate ConnectionClosedEvent;
-        public readonly Socket UnderlyingSocket;
-        public X509Certificate ServerCertificate;
-        public EndPoint RemoteEndPoint;
 
-        public override bool CanRead => Socket.State == WebSocketState.Open;
-        public override bool CanSeek => false;
-        public override bool CanWrite => Socket.State == WebSocketState.Open;
+        private CancellationToken _sCancellationToken;
+        private CancellationTokenSource _cancellationTokenSource;
 
-        public override long Length => throw new NotSupportedException();
+        private GrpcChannel _channel = null;
 
-        public override long Position {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
-        }
+        private AsyncManualResetEvent _mre = null;
+        private IAsyncStreamReader<Binary> _readStream;
+        private IAsyncStreamWriter<Binary> _writeStream;
 
-        public WsConnection(WebSocket wsock, Socket underlyingSocket, X509Certificate cert)
+        public WsConnection(IAsyncStreamReader<Binary> requestStream,
+            IAsyncStreamWriter<Binary> responseStream, AsyncManualResetEvent disconnectEvent)
         {
-            UnderlyingSocket = underlyingSocket;
+            _cancellationTokenSource = new CancellationTokenSource();
+            _sCancellationToken = _cancellationTokenSource.Token;
+            _readStream = requestStream;
+            _writeStream = responseStream;
+            _mre = disconnectEvent;
             Connected = true;
-            Socket = (WebSocketImplementation) wsock;
-            ConnectionId = Socket._guid;
-            ServerCertificate = cert;
-            Socket.ConnectionClose = ConnectionClose;
-            RemoteEndPoint = underlyingSocket.RemoteEndPoint;
+        }
+        public WsConnection(IAsyncStreamReader<Binary> requestStream,
+            IAsyncStreamWriter<Binary> responseStream, GrpcChannel channel)
+        {
+            _cancellationTokenSource = new CancellationTokenSource();
+            _sCancellationToken = _cancellationTokenSource.Token;
+            _readStream = requestStream;
+            _writeStream = responseStream;
+            _channel = channel;
+            Connected = true;
         }
 
-        private void ConnectionClose()
+        public void Close()
         {
+            _cancellationTokenSource.Cancel();
             Connected = false;
             ConnectionClosedEvent?.Invoke(this);
-            Dispose();
+            _mre?.Set();
+            _channel?.ShutdownAsync();
         }
 
-        public int Read(ArraySegment<byte> buf)
+        public async Task Write(ArraySegment<byte> arr)
         {
-            var val = Socket.Receive(buf, CancellationToken.None);
-            if (val.CloseStatus.HasValue)
+            await _writeStream.WriteAsync(new Binary(){Data = ByteString.CopyFrom(arr)});
+        }
+
+        private byte[] tempCache = new byte[1000000];
+        private int cacheLen = 0;
+        private int cacheStart = 0;
+        public async Task<int> Read(ArraySegment<byte> arr)
+        {
+            if (arr.Count == 0) return 0;
+            if (cacheLen >= arr.Count)
             {
-                return 0;
+                for (int i = 0; i < arr.Count; i++)
+                {
+                    arr[i] = tempCache[i + cacheStart];
+                }
+
+                cacheStart += arr.Count;
+                cacheLen -= arr.Count;
+                return arr.Count;
             }
-            return val.Count;
-        }
-        public void Write(ArraySegment<byte> buf)
-        {
-            Socket.Send(buf, WebSocketMessageType.Binary, true, CancellationToken.None);
-        }
-
-        public void Write(ArraySegment<byte> buf, CancellationToken cancellation)
-        {
-            Socket.Send(buf, WebSocketMessageType.Binary, true, cancellation);
-        }
-
-        public override void Close()
-        {
-            if (Connected)
+            else if (cacheLen == 0)
             {
-                Connected = false;
-                Socket.CloseAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None).Wait();
-                Socket.Dispose();
-                Dispose();
+                cacheStart = 0;
+                bool connected = await _readStream.MoveNext(_sCancellationToken);
+                if (!connected)
+                {
+                    Close();
+                    return 0;
+                }
+                var dat = _readStream.Current.Data;
+                if (dat.Length > arr.Count)
+                {
+                    for (int i = 0; i < arr.Count; i++)
+                    {
+                        arr[i] = dat[i];
+                    }
+
+                    cacheLen = dat.Length - arr.Count;
+                    for (int i = 0; i < cacheLen; i++)
+                    {
+                        tempCache[i] = dat[i + arr.Count];
+                    }
+
+                    return arr.Count;
+                }
+                else
+                {
+                    for (int i = 0; i < dat.Length; i++)
+                    {
+                        arr[i] = dat[i];
+                    }
+
+                    return dat.Length;
+                }
             }
-        }
-        protected override void Dispose(bool state)
-        {
-            Socket?.Dispose();
-        }
+            else
+            {
+                for (int i = 0; i < cacheLen; i++)
+                {
+                    arr[i] = tempCache[i + cacheStart];
+                }
 
-        /// <summary>
-        /// This function is useless, all data is directly sent, there is no buffer
-        /// </summary>
-        public override void Flush()
-        {
-            
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            return Read(new ArraySegment<byte>(buffer, offset, count));
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            Write(new ArraySegment<byte>(buffer, offset, count));
+                int tlen = cacheLen;
+                cacheLen = 0;
+                return tlen;
+            }
         }
     }
 }

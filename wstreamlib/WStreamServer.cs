@@ -11,44 +11,46 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
-using wstreamlib.Ninja.WebSockets;
-using wstreamlib.Ninja.WebSockets.Internal;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace wstreamlib
 {
     public class WStreamServer
     {
         public Dictionary<Guid, WsConnection> ActiveConnections;
-        private readonly WebSocketServerFactory _factory;
-        private X509Certificate _cert;
-
-        public TcpListener Listener;
-        public delegate void WStreamPreConnectionDelegate(WStreamPreConnection connection);
-        public event WStreamPreConnectionDelegate PreConnectionEvent;
-        public string ErrorResponseMessage;
         public bool IsListening { get; private set; }
+        private IHost _host;
 
         public WStreamServer()
         {
             ActiveConnections = new Dictionary<Guid, WsConnection>();
-            _factory = new WebSocketServerFactory();
-            ErrorResponseMessage =
-                $"HTTP/1.1 404 Not Found\r\nDate: {DateTime.Now.ToUniversalTime():r}\r\nServer: wstream\r\n\r\n{Config.Version}";
         }
 
-        public void Listen(IPEndPoint endpoint, X509Certificate certificate = null)
+        public void Listen(IPEndPoint endpoint)
         {
-            _cert = certificate;
-            Listener = new TcpListener(endpoint);
-            Listener.Start();
             IsListening = true;
+            _host = Host.CreateDefaultBuilder()
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStaticWebAssets()
+                        .UseStartup<WsStartup>()
+                        .ConfigureServices(x=>x.AddSingleton(this))
+                        .ConfigureKestrel(options =>
+                        {
+                            options.Listen(endpoint, o => o.Protocols = HttpProtocols.Http2);
+                        });
+                }).Build();
+            _host.RunAsync();
         }
 
         public void Stop()
         {
+            _host.StopAsync();
             if (IsListening)
             {
-                Listener.Stop();
                 foreach (WsConnection connection in ActiveConnections.Values)
                 {
                     try
@@ -67,41 +69,14 @@ namespace wstreamlib
             IsListening = false;
         }
 
-        public async Task<WsConnection> AcceptConnectionAsync()
+        public delegate void NewConnection(WsConnection connection);
+
+        public event NewConnection ConnectionAddedEvent;
+
+        internal void AddConnection(WsConnection connection)
         {
-            while (IsListening)
-            {
-                Socket sock = await Listener.AcceptSocketAsync().ConfigureAwait(false);
-                Stream stream = new NetworkStream(sock);
-                if (_cert != null)
-                {
-                    stream = new SslStream(stream,false);
-                    await ((SslStream) stream).AuthenticateAsServerAsync(_cert,false, SslProtocols.Tls13, true).ConfigureAwait(false);
-                }
-                WebSocketHttpContext context = await _factory.ReadHttpHeaderFromStreamAsync(stream).ConfigureAwait(false);
-                var eventArg = new WStreamPreConnection {Context = context};
-                if (context.IsWebSocketRequest)
-                {
-                    PreConnectionEvent?.Invoke(eventArg);
-                    if (!eventArg.IsCancelled)
-                    {
-                        WebSocketImplementation wsi = (WebSocketImplementation) await _factory.AcceptWebSocketAsync(context).ConfigureAwait(false);
-                        var conn = new WsConnection(wsi, sock, _cert);
-                        conn.ConnectionClosedEvent += ConnectionClosedEvent;
-                        ActiveConnections[conn.ConnectionId] = conn;
-                        return conn;
-                    }
-
-                    stream.Close();
-                    sock.Close();
-                    continue;
-                }
-                stream.Write(Encoding.UTF8.GetBytes(ErrorResponseMessage));
-                stream.Close();
-                sock.Close();
-            }
-
-            return null;
+            ActiveConnections.Add(connection.ConnectionId, connection);
+            ConnectionAddedEvent?.Invoke(connection);
         }
 
         private void ConnectionClosedEvent(WsConnection connection)
