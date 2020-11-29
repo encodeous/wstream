@@ -1,29 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.WebSockets;
 using System.Threading;
-using wstreamlib.Ninja.WebSockets;
+using System.Threading.Tasks;
 
 namespace wstreamlib
 {
     public class WStream
     {
-        private readonly WebSocketClientFactory _factory;
-
         public WStream()
         {
-            _factory = new WebSocketClientFactory();
         }
 
-        public WsConnection Connect(Uri uri, CancellationToken cancellationToken,  Dictionary<string, string> headers = null)
+        private ClientWebSocket _client;
+        public async Task<WsConnection> Connect(Uri uri)
         {
-            var opt = new WebSocketClientOptions();
-            if (headers != null)
-            {
-                opt.AdditionalHttpHeaders = headers;
-            }
+            _client = new ClientWebSocket();
+            await _client.ConnectAsync(uri, CancellationToken.None);
+            return new WsConnection(_client);
+        }
 
-            var wSock = _factory.ConnectAsync(uri, opt, cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
-            return new WsConnection(wSock.Item1, wSock.Item2, wSock.Item3);
+        public async Task Close()
+        {
+            await _client.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
         }
     }
 }

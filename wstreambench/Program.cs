@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using wstreamlib;
 
-namespace wstreambenchmark
+namespace wstreambench
 {
     class Program
     {
@@ -14,50 +15,46 @@ namespace wstreambenchmark
             WStreamServer server = new WStreamServer();
             server.Listen(new IPEndPoint(IPAddress.Any, 12345));
             WStream wsClient = new WStream();
-            var a = new Thread(() => ServerThread(server));
-            var b = new Thread(() => ClientThread(wsClient));
-            a.Priority = ThreadPriority.Highest;
-            b.Priority = ThreadPriority.Highest;
-            a.Start();
+            server.ConnectionAddedEvent += ServerThread;
+            //var a = new Thread(() => ServerThread(server));
+            var b = new Task(async () => await ClientThread(wsClient));
+            //a.Priority = ThreadPriority.Highest;
+            //a.Start();
             b.Start();
             Thread.Sleep(-1);
         }
 
         private static int _bufferSize = 1024;
 
-        private static void ServerThread(WStreamServer server)
+        private static void ServerThread(WsConnection tunnel)
         {
-            while (true)
+            ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[_bufferSize]);
+            try
             {
-                var tunnel = server.AcceptConnectionAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-                ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[_bufferSize]);
-                try
+                while (tunnel.Connected)
                 {
-                    while (tunnel.Connected)
+                    if (buffer.Array.Length != _bufferSize)
                     {
-                        if (buffer.Array.Length != _bufferSize)
-                        {
-                            buffer = new ArraySegment<byte>(new byte[_bufferSize]);
-                        }
-                        int len = tunnel.Read(buffer);
-                        tunnel.Write(buffer.Slice(0, len));
+                        buffer = new ArraySegment<byte>(new byte[_bufferSize]);
                     }
+                    int len = tunnel.Read(buffer).Result;
+                    tunnel.Write(buffer.Slice(0, len)).Wait();
                 }
-                catch
-                {
-                    tunnel.Close();
-                }
+            }
+            catch
+            {
+                tunnel.Close();
             }
         }
 
-        private static void ClientThread(WStream client)
+        private static async Task ClientThread(WStream client)
         {
-            long bytes = (long)Math.Pow(2,30);
+            long bytes = (long)Math.Pow(2, 30);
             Console.WriteLine($"Sending {bytes:n} bytes of data with various packet sizes and waiting for response.");
-            for (int i = 14; i < 25; i++)
+            for (int i = 17; i < 25; i++)
             {
                 _bufferSize = (int)Math.Pow(2, i);
-                var tunnel = client.Connect(new Uri("http://localhost:12345"),CancellationToken.None);
+                var tunnel = await client.Connect(new Uri("ws://localhost:12345"));
                 long byteSent = 0;
                 long byteReceived = 0;
                 long messagesSent = 0;
@@ -70,31 +67,31 @@ namespace wstreambenchmark
                 {
                     if (byteSent < bytes)
                     {
-                        Send(tunnel);
+                        await Send(tunnel);
                         byteSent += _bufferSize;
                         messagesSent++;
                     }
 
                     if (byteReceived < bytes)
                     {
-                        int len = tunnel.Read(sbuf);
+                        int len = await tunnel.Read(sbuf);
                         byteReceived += len;
                     }
                 }
                 DateTime timeEnd = DateTime.Now;
 
                 TimeSpan span = timeEnd - timeNow;
-                Console.WriteLine($"Buf: {_bufferSize:n} Elapsed {span}, {bytes / span.TotalSeconds:n} bytes / second @ {messagesSent/span.TotalSeconds:n} messages / second.");
-                tunnel.Close();
+                Console.WriteLine($"Buf: {_bufferSize:n} Elapsed {span}, {bytes / span.TotalSeconds:n} bytes / second @ {messagesSent / span.TotalSeconds:n} messages / second.");
+                await tunnel.Close();
                 client = new WStream();
             }
         }
 
         private static byte[] buffer;
 
-        private static void Send(WsConnection connection)
+        private static Task Send(WsConnection connection)
         {
-            connection.Write(buffer);
+            return connection.Write(buffer);
         }
     }
 }

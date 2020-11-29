@@ -1,54 +1,65 @@
 ﻿
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Net.Http;
-using System.Net.Security;
-using System.Net.Sockets;
-using System.Net.WebSockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading.Tasks;
-using wstreamlib.Ninja.WebSockets;
-using wstreamlib.Ninja.WebSockets.Internal;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace wstreamlib
 {
     public class WStreamServer
     {
-        public Dictionary<Guid, WsConnection> ActiveConnections;
-        private readonly WebSocketServerFactory _factory;
-        private X509Certificate _cert;
-
-        public TcpListener Listener;
-        public delegate void WStreamPreConnectionDelegate(WStreamPreConnection connection);
-        public event WStreamPreConnectionDelegate PreConnectionEvent;
-        public string ErrorResponseMessage;
+        public ConcurrentDictionary<Guid, WsConnection> ActiveConnections;
         public bool IsListening { get; private set; }
+        private IHost _host;
 
         public WStreamServer()
         {
-            ActiveConnections = new Dictionary<Guid, WsConnection>();
-            _factory = new WebSocketServerFactory();
-            ErrorResponseMessage =
-                $"HTTP/1.1 404 Not Found\r\nDate: {DateTime.Now.ToUniversalTime():r}\r\nServer: wstream\r\n\r\n{Config.Version}";
+            ActiveConnections = new ConcurrentDictionary<Guid, WsConnection>();
         }
 
-        public void Listen(IPEndPoint endpoint, X509Certificate certificate = null)
+        public Task Listen(IPEndPoint endpoint, X509Certificate2 sslCert = null)
         {
-            _cert = certificate;
-            Listener = new TcpListener(endpoint);
-            Listener.Start();
             IsListening = true;
+            _host = Host.CreateDefaultBuilder()
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStaticWebAssets()
+                        .ConfigureServices(x => x.AddSingleton(this))
+                        .UseStartup<WsStartup>()
+                        .ConfigureKestrel(options =>
+                        {
+                            options.Listen(endpoint, o =>
+                            {
+                                o.Protocols = HttpProtocols.Http1;
+                                if (sslCert != null)
+                                {
+                                    o.UseHttps(x =>
+                                    {
+                                        x.ServerCertificate = sslCert;
+                                        x.SslProtocols = SslProtocols.Tls13;
+                                    });
+                                }
+                                
+                            });
+                        }).ConfigureLogging(x=>x.ClearProviders());
+                }).Build();
+            return _host.RunAsync();
         }
 
         public void Stop()
         {
+            _host.StopAsync();
             if (IsListening)
             {
-                Listener.Stop();
                 foreach (WsConnection connection in ActiveConnections.Values)
                 {
                     try
@@ -67,48 +78,27 @@ namespace wstreamlib
             IsListening = false;
         }
 
-        public async Task<WsConnection> AcceptConnectionAsync()
+        public delegate void NewConnection(WsConnection connection);
+
+        public event NewConnection ConnectionAddedEvent;
+
+        internal void AddConnection(WsConnection connection)
         {
-            while (IsListening)
+            while (!ActiveConnections.TryAdd(connection.ConnectionId, connection))
             {
-                Socket sock = await Listener.AcceptSocketAsync().ConfigureAwait(false);
-                Stream stream = new NetworkStream(sock);
-                if (_cert != null)
-                {
-                    stream = new SslStream(stream,false);
-                    await ((SslStream) stream).AuthenticateAsServerAsync(_cert,false, SslProtocols.Tls13, true).ConfigureAwait(false);
-                }
-                WebSocketHttpContext context = await _factory.ReadHttpHeaderFromStreamAsync(stream).ConfigureAwait(false);
-                var eventArg = new WStreamPreConnection {Context = context};
-                if (context.IsWebSocketRequest)
-                {
-                    PreConnectionEvent?.Invoke(eventArg);
-                    if (!eventArg.IsCancelled)
-                    {
-                        WebSocketImplementation wsi = (WebSocketImplementation) await _factory.AcceptWebSocketAsync(context).ConfigureAwait(false);
-                        var conn = new WsConnection(wsi, sock, _cert);
-                        conn.ConnectionClosedEvent += ConnectionClosedEvent;
-                        ActiveConnections[conn.ConnectionId] = conn;
-                        return conn;
-                    }
 
-                    stream.Close();
-                    sock.Close();
-                    continue;
-                }
-                stream.Write(Encoding.UTF8.GetBytes(ErrorResponseMessage));
-                stream.Close();
-                sock.Close();
             }
-
-            return null;
+            ConnectionAddedEvent?.Invoke(connection);
         }
 
-        private void ConnectionClosedEvent(WsConnection connection)
+        internal void ConnectionClosed(WsConnection connection)
         {
             if (ActiveConnections.ContainsKey(connection.ConnectionId))
             {
-                ActiveConnections.Remove(connection.ConnectionId);
+                while (!ActiveConnections.TryRemove(connection.ConnectionId, out _))
+                {
+
+                }
             }
         }
 

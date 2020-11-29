@@ -6,6 +6,6 @@ namespace wstreamlib
 {
     public static class Config
     {
-        public static readonly string Version = "wstreamlib v1.1";
+        public static readonly string Version = "Powered by wstreamlib v1.3.0 + aspnetcore";
     }
 }
