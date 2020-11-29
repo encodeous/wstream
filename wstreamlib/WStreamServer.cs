@@ -1,35 +1,32 @@
 ﻿
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Net.Http;
-using System.Net.Security;
-using System.Net.Sockets;
-using System.Net.WebSockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace wstreamlib
 {
     public class WStreamServer
     {
-        public Dictionary<Guid, WsConnection> ActiveConnections;
+        public ConcurrentDictionary<Guid, WsConnection> ActiveConnections;
         public bool IsListening { get; private set; }
         private IHost _host;
 
         public WStreamServer()
         {
-            ActiveConnections = new Dictionary<Guid, WsConnection>();
+            ActiveConnections = new ConcurrentDictionary<Guid, WsConnection>();
         }
 
-        public void Listen(IPEndPoint endpoint)
+        public Task Listen(IPEndPoint endpoint, X509Certificate2 sslCert = null)
         {
             IsListening = true;
             _host = Host.CreateDefaultBuilder()
@@ -40,10 +37,22 @@ namespace wstreamlib
                         .UseStartup<WsStartup>()
                         .ConfigureKestrel(options =>
                         {
-                            options.Listen(endpoint, o => o.Protocols = HttpProtocols.Http1);
-                        });
+                            options.Listen(endpoint, o =>
+                            {
+                                o.Protocols = HttpProtocols.Http1;
+                                if (sslCert != null)
+                                {
+                                    o.UseHttps(x =>
+                                    {
+                                        x.ServerCertificate = sslCert;
+                                        x.SslProtocols = SslProtocols.Tls13;
+                                    });
+                                }
+                                
+                            });
+                        }).ConfigureLogging(x=>x.ClearProviders());
                 }).Build();
-            _host.RunAsync();
+            return _host.RunAsync();
         }
 
         public void Stop()
@@ -75,15 +84,21 @@ namespace wstreamlib
 
         internal void AddConnection(WsConnection connection)
         {
-            ActiveConnections.Add(connection.ConnectionId, connection);
+            while (!ActiveConnections.TryAdd(connection.ConnectionId, connection))
+            {
+
+            }
             ConnectionAddedEvent?.Invoke(connection);
         }
 
-        private void ConnectionClosedEvent(WsConnection connection)
+        internal void ConnectionClosed(WsConnection connection)
         {
             if (ActiveConnections.ContainsKey(connection.ConnectionId))
             {
-                ActiveConnections.Remove(connection.ConnectionId);
+                while (!ActiveConnections.TryRemove(connection.ConnectionId, out _))
+                {
+
+                }
             }
         }
 

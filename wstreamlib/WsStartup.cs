@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -10,7 +11,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace wstreamlib
 {
@@ -47,7 +47,14 @@ namespace wstreamlib
                     async context => {
                         if (context.WebSockets.IsWebSocketRequest)
                         {
-                            _server.AddConnection(new WsConnection(await context.WebSockets.AcceptWebSocketAsync()));
+                            var ws = await context.WebSockets.AcceptWebSocketAsync();
+                            var wsc = new WsConnection(ws);
+                            _server.AddConnection(wsc);
+                            while (ws.State == WebSocketState.Open)
+                            {
+                                await Task.Delay(100);
+                            }
+                            _server.ConnectionClosed(wsc);
                         }
                         else
                         {

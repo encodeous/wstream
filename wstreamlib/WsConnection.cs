@@ -7,8 +7,6 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Nito.AsyncEx;
-using Nito.AsyncEx.Synchronous;
 
 namespace wstreamlib
 {
@@ -34,10 +32,14 @@ namespace wstreamlib
 
         public Task Close()
         {
-            _cancellationTokenSource.Cancel();
-            Connected = false;
-            ConnectionClosedEvent?.Invoke(this);
-            return _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+            if (Connected)
+            {
+                Connected = false;
+                _cancellationTokenSource.Cancel();
+                ConnectionClosedEvent?.Invoke(this);
+                return _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null!, CancellationToken.None);
+            }
+            return Task.CompletedTask;
         }
 
         public Task Write(ArraySegment<byte> arr)
