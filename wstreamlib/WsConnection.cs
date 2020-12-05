@@ -12,6 +12,10 @@ namespace wstreamlib
 {
     public class WsConnection
     {
+        /// <summary>
+        /// Local Connection Client ID, not the same across on the other end
+        /// </summary>
+        public readonly Guid ConnectionId = Guid.NewGuid();
         public bool Connected { get; private set; }
         public delegate void ConnectionCloseDelegate(WsConnection connection);
         public event ConnectionCloseDelegate ConnectionClosedEvent;
