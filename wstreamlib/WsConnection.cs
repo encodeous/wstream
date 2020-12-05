@@ -12,7 +12,6 @@ namespace wstreamlib
 {
     public class WsConnection
     {
-        public readonly Guid ConnectionId = Guid.NewGuid();
         public bool Connected { get; private set; }
         public delegate void ConnectionCloseDelegate(WsConnection connection);
         public event ConnectionCloseDelegate ConnectionClosedEvent;
