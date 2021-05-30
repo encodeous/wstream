@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "wstreamlib", "wstreamlib\wstreamlib.csproj", "{7A331EC6-FFF4-4B81-B585-791079384E57}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "wstream", "wstream\wstream.csproj", "{7A331EC6-FFF4-4B81-B585-791079384E57}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "wstreambench", "wstreambench\wstreambench.csproj", "{09D23CCA-5127-46E1-A430-B259BEFD9887}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "benchmark", "benchmark\benchmark.csproj", "{09D23CCA-5127-46E1-A430-B259BEFD9887}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "samples", "samples\samples.csproj", "{EBE34523-BD2D-42F7-9327-BA7FCDC7AE70}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{09D23CCA-5127-46E1-A430-B259BEFD9887}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{09D23CCA-5127-46E1-A430-B259BEFD9887}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{09D23CCA-5127-46E1-A430-B259BEFD9887}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBE34523-BD2D-42F7-9327-BA7FCDC7AE70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBE34523-BD2D-42F7-9327-BA7FCDC7AE70}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBE34523-BD2D-42F7-9327-BA7FCDC7AE70}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBE34523-BD2D-42F7-9327-BA7FCDC7AE70}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

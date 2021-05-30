@@ -3,10 +3,13 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>wstreambench</RootNamespace>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>link</TrimMode>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\wstreamlib\wstreamlib.csproj" />
+    <ProjectReference Include="..\wstream\wstream.csproj" />
   </ItemGroup>
 
 </Project>
