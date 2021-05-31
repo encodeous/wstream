@@ -48,7 +48,7 @@ namespace wstream
             Connected = true;
         }
 
-        internal Task InternalCloseAsync(bool remote = false)
+        internal async Task InternalCloseAsync(bool remote = false)
         {
             if (Connected)
             {
@@ -57,14 +57,13 @@ namespace wstream
                 ConnectionClosedEvent?.Invoke(this, remote);
                 try
                 {
-                    return _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null!, CancellationToken.None);
+                    await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null!, CancellationToken.None);
                 }
                 catch
                 {
                     
                 }
             }
-            return Task.CompletedTask;
         }
         
         /// <summary>

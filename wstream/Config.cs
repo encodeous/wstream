@@ -10,5 +10,10 @@ namespace wstream
         /// Just a version string
         /// </summary>
         public const string Version = "WStream";
+
+        /// <summary>
+        /// Buffer Size used internally
+        /// </summary>
+        public const int InternalBufferSize = 65536;
     }
 }

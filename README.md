@@ -1,6 +1,6 @@
 # WStream - WebSocket Streams
 
-*WStream offers a simple and standalone high-performance WebSocket stream built on top of ASP.NET Core Kestrel*
+*WStream offers a simple and standalone high-performance WebSocket stream built on top of Kestrel*
 
 ## Use Cases:
 
@@ -52,14 +52,11 @@ An example usage of this API is shown in the `samples` project.
 
 Here is a benchmark performed on Windows 10 Build 19402 with a core i7-6700k and 32gb of system ram.
 ```
----- Sending 5368706370 bytes with buffer size of 358400 ----
-Elapsed: 00:00:10.3100529
-Throughput: 520,725,395.11 Bytes / second
-Message Rate 1,452.95 Messages / second.
+Buffer Size: 65536  Throughput: 558.92 MBps  Elapsed: 00:15:16.0470650  Message Rate: 8,942.77 msg/s  Payload Size: 511,999.00 MB.
 ```
 
 As you can see, WStream reaches over 4 Gbps through a single connection!
 
 ## Current Limitations
 
-Due to the fact that Kestrel is bundled inside of ASP.NET Core, there are a large number of dependencies. There is no way around this while still targeting `netstandard2.1`.
+Due to the fact that Kestrel is bundled inside of ASP.NET Core, there are a large number of dependencies. There is currently no way around this :(

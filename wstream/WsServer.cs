@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Net;
-using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Internal;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets;
 using Microsoft.Extensions.Logging;
@@ -19,90 +15,52 @@ namespace wstream
     {
         public bool IsListening { get; private set; }
         private CancellationTokenSource _stopSource;
-        private IWebHost _host;
+        private KestrelServer _server;
 
         /// <summary>
         /// Starts listening for new Websocket stream connections
         /// </summary>
         /// <param name="endpoint">The endpoint to listen to</param>
         /// <param name="connectionAdded">A connection delegate that is called when a new client is connected</param>
+        /// <param name="bufferSize">Buffer sized used for receiving</param>
         /// <param name="defaultPage">Default response to clients like browsers</param>
         /// <returns></returns>
-        public Task StartAsync(IPEndPoint endpoint, Func<WsStream, Task> connectionAdded, string defaultPage = Config.Version)
+        public Task StartAsync(IPEndPoint endpoint, Func<WsStream, Task> connectionAdded, int bufferSize = Config.InternalBufferSize, string defaultPage = Config.Version)
         {
+            if (IsListening) throw new InvalidOperationException("WsServer is already running!");
             _stopSource = new CancellationTokenSource();
             IsListening = true;
-            _host = new WebHostBuilder()
-                .ConfigureLogging(x =>
-                {
-                    x.ClearProviders();
-                })
-                .UseKestrel(o =>
-                {
-                    o.Listen(endpoint);
-                })
-                .Configure(app =>
-                {
-                    app.UseWebSockets();
-                    app.Use(async (context, next) =>
-                    {
-                        try
-                        {
-                            if (context.Request.Path == "/")
-                            {
-                                if (context.WebSockets.IsWebSocketRequest)
-                                {
-                                    WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
-                                    var sId = Guid.NewGuid();
-                                    await webSocket.SendAsync(new ArraySegment<byte>(sId.ToByteArray()), WebSocketMessageType.Binary, true, CancellationToken.None);
-                                    var wsc = new WsStream(new WStreamBaseSocket(webSocket), sId);
-                                    // dont block the current task
-#pragma warning disable 4014
-                                    Task.Run(()=>connectionAdded.Invoke(wsc));
-#pragma warning restore 4014
-                                    var ct = _stopSource.Token;
-                                    while (webSocket.State == WebSocketState.Open && !ct.IsCancellationRequested)
-                                    {
-                                        await Task.Delay(100);
-                                    }
+            // setup kestrel parameters
+            var logger = new NullLoggerFactory();
+            var kestrelOptions = new KestrelServerOptions();
+            var lifetime = new ApplicationLifetime(logger.CreateLogger<ApplicationLifetime>());
+            var socketTransportFactory = new SocketTransportFactory(Options.Create(new SocketTransportOptions()), lifetime, logger);
+            // start kestrel
+            _server = new KestrelServer(Options.Create(kestrelOptions),socketTransportFactory, logger);
+            _server.Options.Listen(endpoint);
+            return _server.StartAsync(new KestrelRequestHandler(connectionAdded, bufferSize, _stopSource.Token, defaultPage), CancellationToken.None);
+        }
 
-                                    if (ct.IsCancellationRequested)
-                                    {
-                                        await wsc.CloseAsync();
-                                    }
-                                    else
-                                    {
-                                        await wsc.InternalCloseAsync(true);
-                                    }
-                                }
-                                else
-                                {
-                                    await context.Response.WriteAsync(defaultPage);
-                                }
-                            }
-                        }
-                        catch
-                        {
-                            
-                        }
-                    });
-                })
-                .Build();
-            return _host.StartAsync();
+        /// <summary>
+        /// Shuts down the server
+        /// </summary>
+        public async Task StopAsync()
+        {
+            if (IsListening)
+            {
+                IsListening = false;
+                _stopSource.Cancel();
+                await _server.StopAsync(CancellationToken.None);
+                _stopSource.Dispose();
+                _server.Dispose();
+            }
         }
         /// <summary>
         /// Stops the server, and disposes any resources
         /// </summary>
         public void Dispose()
         {
-            if (IsListening)
-            {
-                IsListening = false;
-                _stopSource.Cancel();
-                _host.StopAsync().GetAwaiter().GetResult();
-                _stopSource?.Dispose();
-                _host?.Dispose();
-            }
+            StopAsync().GetAwaiter().GetResult();
         }
     }
 }
