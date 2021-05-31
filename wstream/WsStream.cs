@@ -15,7 +15,7 @@ namespace wstream
     /// <summary>
     /// Encapsulates a Connection between WStream and WStreamServer
     /// </summary>
-    public class WsStream : Stream
+    public class WsStream : Stream, IDisposable
     {
         /// <summary>
         /// Client Id, sent by the server to the client
@@ -57,7 +57,7 @@ namespace wstream
                 ConnectionClosedEvent?.Invoke(this, remote);
                 try
                 {
-                    await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null!, CancellationToken.None);
+                    await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
                 }
                 catch
                 {
@@ -139,9 +139,9 @@ namespace wstream
             // doesnt do anything
         }
 
-        public override async ValueTask DisposeAsync()
+        public override void Close()
         {
-            await CloseAsync();
+            InternalCloseAsync().GetAwaiter().GetResult();
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -154,24 +154,6 @@ namespace wstream
             return Read(new ArraySegment<byte>(buffer, offset, count), cancellationToken);
         }
 
-        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
-        {
-            var res = await _socket.ReceiveAsync(buffer, cancellationToken);
-            if (res.Count == 0)
-            {
-                try
-                {
-                    await CloseAsync();
-                }
-                catch
-                {
-                    
-                }
-                return 0;
-            }
-            return res.Count;
-        }
-
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             return Write(new ArraySegment<byte>(buffer, offset, count), cancellationToken);
@@ -180,11 +162,6 @@ namespace wstream
         {
             var tsk = Write(new ArraySegment<byte>(buffer, offset, count), CancellationToken.None);
             tsk.GetAwaiter().GetResult();
-        }
-
-        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
-        {
-            return _socket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
         }
 
         public override bool CanRead => Connected;

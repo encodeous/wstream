@@ -62,7 +62,7 @@ async Task ClientThread(int bfz, long bytes)
     WsClient client = new WsClient();
     _bufferSize = bfz;
     var rng = new Random();
-    await Task.Delay(500);
+    await Task.Delay(1000);
     var tunnel = await client.ConnectAsync(new Uri($"ws://{IPAddress.Loopback}:12345"));
     long byteSent = 0;
     long messagesSent = 0;
