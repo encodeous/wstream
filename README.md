@@ -1,5 +1,7 @@
 # WStream - WebSocket Streams
 
+[![Download on Nuget](https://img.shields.io/nuget/v/wstream?style=flat-square)](https://www.nuget.org/packages/wstream/)
+
 *WStream offers a simple and standalone high-performance WebSocket stream built on top of Kestrel*
 
 ## Use Cases:
