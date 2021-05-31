@@ -63,6 +63,7 @@ namespace wstream
                 {
                     
                 }
+                _socket.Dispose();
             }
         }
         
