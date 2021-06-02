@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using wstream;
+using wstream.Crypto;
 
 int _bufferSize = 1024 * 130;
 
@@ -44,6 +45,7 @@ async Task ClientThread(int bfz, long bytes)
 {
     await server.StartAsync(new IPEndPoint(IPAddress.Loopback, 12345), async (tunnel) =>
     {
+        await tunnel.EncryptAsync();
         var buffer = new byte[bfz];
         long bytesRead = 0;
         try
@@ -64,6 +66,7 @@ async Task ClientThread(int bfz, long bytes)
     var rng = new Random();
     await Task.Delay(1000);
     var tunnel = await client.ConnectAsync(new Uri($"ws://{IPAddress.Loopback}:12345"));
+    await tunnel.EncryptAsync();
     long byteSent = 0;
     long messagesSent = 0;
     buffer = new byte[_bufferSize];

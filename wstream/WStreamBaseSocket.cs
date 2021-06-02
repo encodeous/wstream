@@ -11,29 +11,42 @@ namespace wstream
     internal class WStreamBaseSocket : WStreamSocket
     {
         private WebSocket _socket;
-        public WStreamBaseSocket(WebSocket underlyingSocket)
+        internal Action CloseCallback;
+        public override bool Connected => _connected;
+        private bool _connected = true;
+        
+        public WStreamBaseSocket(WebSocket underlyingSocket, bool parity) : base(parity)
         {
             _socket = underlyingSocket;
         }
-        public override Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
+        
+        public override async Task CloseAsync()
         {
-            return _socket.CloseAsync(closeStatus, statusDescription, cancellationToken);
+            await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+            Dispose();
         }
 
         public override void Dispose()
         {
+            _connected = false;
+            CloseCallback();
             _socket.Dispose();
         }
 
-        public override Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken)
+        public override async Task<int> ReadAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
-            return _socket.ReceiveAsync(buffer, cancellationToken);
+            var res = await _socket.ReceiveAsync(buffer, cancellationToken);
+            if (res.CloseStatus != null)
+            {
+                await CloseAsync();
+                return 0;
+            }
+            return res.Count;
         }
 
-        public override Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage,
-            CancellationToken cancellationToken)
+        public override Task WriteAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
-            return _socket.SendAsync(buffer, messageType, endOfMessage, cancellationToken);
+            return _socket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
         }
     }
 }

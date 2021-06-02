@@ -28,7 +28,7 @@ namespace wstream
                     var sId = Guid.NewGuid();
                     await webSocket.SendAsync(new ArraySegment<byte>(sId.ToByteArray()), WebSocketMessageType.Binary,
                         true, CancellationToken.None);
-                    var wsc = new WsStream(new WStreamBaseSocket(webSocket), sId);
+                    var wsc = new WsStream(new WStreamBaseSocket(webSocket, true), sId);
                     // dont block the current task
 #pragma warning disable 4014
                     Task.Run(() => connectionAdded.Invoke(wsc));
@@ -37,15 +37,8 @@ namespace wstream
                     {
                         await Task.Delay(100);
                     }
-
-                    if (stopToken.IsCancellationRequested)
-                    {
-                        await wsc.CloseAsync();
-                    }
-                    else
-                    {
-                        await wsc.InternalCloseAsync(true);
-                    }
+                    
+                    wsc.Close();
                 }
                 else
                 {

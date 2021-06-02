@@ -18,37 +18,30 @@ namespace samples
     /// </summary>
     class Interceptor : WStreamSocket
     {
-        private WStreamSocket _socket;
         private InterceptData _data;
 
-        public Interceptor(WStreamSocket socket, out InterceptData data)
+        public Interceptor(WStreamSocket socket, out InterceptData data) : base(socket)
         {
             _data = new InterceptData();
             data = _data;
-            _socket = socket;
         }
-        public override Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
+        public override Task CloseAsync()
         {
             Console.WriteLine("Socket Closed");
-            return _socket.CloseAsync(closeStatus, statusDescription, cancellationToken);
+            return WrappedSocket.CloseAsync();
         }
 
-        public override void Dispose()
+        public override async Task<int> ReadAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
-            _socket.Dispose();
+            int len = await WrappedSocket.ReadAsync(buffer, cancellationToken);
+            _data.BytesRead += len;
+            return len;
         }
 
-        public override Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken)
-        {
-            _data.BytesRead += buffer.Count;
-            return _socket.ReceiveAsync(buffer, cancellationToken);
-        }
-
-        public override Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage,
-            CancellationToken cancellationToken)
+        public override Task WriteAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
             _data.BytesWritten += buffer.Count;
-            return _socket.SendAsync(buffer, messageType, endOfMessage, cancellationToken);
+            return WrappedSocket.WriteAsync(buffer, cancellationToken);
         }
     }
     public class WsWrapTest

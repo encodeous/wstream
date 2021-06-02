@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\wstream\wstream.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Overby.Extensions.AsyncBinaryReaderWriter" Version="1.0.39" />
+      <PackageReference Include="System.IO.Pipelines" Version="5.0.1" />
+    </ItemGroup>
+
+</Project>

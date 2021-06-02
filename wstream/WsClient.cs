@@ -40,7 +40,7 @@ namespace wstream
                 if (res.Count == 0) throw new EndOfStreamException("Unexpected end of Websocket while initializing");
                 lenRead += res.Count;
             }
-            return _connection = new WsStream(new WStreamBaseSocket(_client), new Guid(bytes));
+            return _connection = new WsStream(new WStreamBaseSocket(_client, false), new Guid(bytes));
         }
         /// <summary>
         /// Stops the websocket stream client, and disposes any underlying native resources
