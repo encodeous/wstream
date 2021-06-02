@@ -10,7 +10,7 @@ int _bufferSize = 1024 * 130;
 
 WsServer server = new WsServer();
 
-Console.WriteLine("Starting wstream Benchmark...");
+Console.WriteLine("Starting wstream Benchmark with Crypto enabled...");
 
 await ClientThread(4 * 1024,   (long)(0.7 * 1073741274L));
 await ClientThread(16 * 1024,  (3 * 1073741274L));
