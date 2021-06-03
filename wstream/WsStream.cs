@@ -53,7 +53,7 @@ namespace wstream
         /// <param name="wrapCallback">Create a new subclass of WStreamSocket that wraps around the current socket and return it</param>
         public async Task WrapSocketAsync(Func<WStreamSocket, Task<WStreamSocket>> wrapCallback)
         {
-            WrappedSocket.SetSocket(await wrapCallback(WrappedSocket));
+            SetSocket(await wrapCallback(WrappedSocket));
         }
     }
 }

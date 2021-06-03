@@ -61,7 +61,7 @@ namespace wstream.Crypto
                     rem = _currentPacket.BufferLength - _currentPacket.Position;
                 }
                 // check if remaining crypto buffer is enough to fill read buffer
-                if (rem <= len)
+                if (rem < len)
                 {
                     // not enough
                     if (_currentPacket.Buffer is not null)

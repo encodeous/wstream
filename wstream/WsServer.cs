@@ -50,7 +50,8 @@ namespace wstream
             {
                 IsListening = false;
                 _stopSource.Cancel();
-                await _server.StopAsync(CancellationToken.None);
+                var cts = new CancellationTokenSource(500);
+                await _server.StopAsync(cts.Token);
                 _stopSource.Dispose();
                 _server.Dispose();
             }

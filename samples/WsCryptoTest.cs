@@ -15,6 +15,10 @@ namespace samples
         {
             // create the server
             var server = new WsServer();
+            var serverKey = CryptoExtensions.GenerateKey();
+            var clientKey = CryptoExtensions.GenerateKey();
+            Console.WriteLine($"Server key is: [{serverKey.Q.GetFingerprintString()}]");
+            Console.WriteLine($"Client key is: [{clientKey.Q.GetFingerprintString()}]");
             await server.StartAsync(new IPEndPoint(IPAddress.Any, 8080), async stream =>
             {
                 // encrypt
@@ -23,7 +27,8 @@ namespace samples
                 var ct = Encoding.ASCII.GetBytes($"Hello from Server! {DateTime.Now}");
                 br.Write(ct.Length);
                 br.Write(ct);
-                await stream.EncryptAsync();
+                var res = await stream.EncryptAsync(serverKey);
+                Console.WriteLine($"Client connected with fingerprint of [{res.GetFingerprintString()}]");
                 while (stream.Connected)
                 {
                     var bytes = Encoding.ASCII.GetBytes($"Hello from Server! {DateTime.Now}");
@@ -45,7 +50,9 @@ namespace samples
             var g = binReader.ReadBytes(e);
             Console.WriteLine(Encoding.ASCII.GetString(g));
             
-            await connection.EncryptAsync();
+            var serverRes = await connection.EncryptAsync(clientKey);
+            
+            Console.WriteLine($"Connected to server with fingerprint of [{serverRes.GetFingerprintString()}]");
             
             for (int i = 0; i < 100; i++)
             {

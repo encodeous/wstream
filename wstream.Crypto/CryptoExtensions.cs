@@ -1,7 +1,10 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
+using System.Numerics;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Overby.Extensions.AsyncBinaryReaderWriter;
@@ -23,10 +26,69 @@ namespace wstream.Crypto
     /// </summary>
     public static class CryptoExtensions
     {
+        /// <summary>
+        /// Generates a new ECDSA private / public key pair using the secp384r1 curve
+        /// </summary>
+        /// <returns>A new ECDSA key</returns>
+        public static ECParameters GenerateKey()
+        {
+            var ecdsa = ECDsa.Create(ECCurve.CreateFromFriendlyName("secp384r1"));
+            return ecdsa.ExportParameters(true);
+        }
+
+        /// <summary>
+        /// Exports the ECDSA key in Pkcs8 format
+        /// </summary>
+        /// <param name="parameters">The ECDSA key</param>
+        /// <returns>Exported private key</returns>
+        public static byte[] ExportPrivateKey(ECParameters parameters)
+        {
+            ECDsa ecDsa = ECDsa.Create(parameters);
+            return ecDsa.ExportPkcs8PrivateKey();
+        }
+
+        /// <summary>
+        /// Imports the ECDSA key from Pkcs8 format
+        /// </summary>
+        /// <param name="bytes">Private key store in the Pkcs8 format</param>
+        /// <returns>The ECDSA key</returns>
+        public static ECParameters ImportPrivateKey(byte[] bytes)
+        {
+            ECDsa ecDsa = ECDsa.Create(ECCurve.CreateFromFriendlyName("secp384r1"));
+            ecDsa.ImportPkcs8PrivateKey(bytes, out var _);
+            return ecDsa.ExportParameters(true);
+        }
+        /// <summary>
+        /// Returns the Hex-encoded value of the x-coordinate of the public key
+        /// </summary>
+        /// <param name="publicKey">The hex-encoded value</param>
+        /// <returns></returns>
+        public static string GetFingerprintString(this ECPoint publicKey)
+        {
+            return BitConverter.ToString(publicKey.X);
+        }
+
+        /// <summary>
+        /// Establishes encryption in the current socket. It is required that both the client and server call this!
+        /// <remarks>
+        /// This method overload will create a random ECDSA signing key every time it is called. It is highly recommended to use fixed keys and validate the returned fingerprint with a trusted store.
+        /// </remarks>
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns></returns>
         public static Task<ECPoint> EncryptAsync(this WsStream stream)
         {
             return EncryptAsync(stream, ECDsa.Create(ECCurve.CreateFromFriendlyName("secp384r1")));
         }
+        /// <summary>
+        /// Establishes encryption in the current socket. It is required that both the client and server call this!
+        /// </summary>
+        /// <remarks>
+        /// It is highly recommended to validate the returned fingerprint with a trusted store.
+        /// </remarks>
+        /// <param name="stream"></param>
+        /// <param name="parameters">ECDSA public / private keypair used for signing</param>
+        /// <returns></returns>
         public static Task<ECPoint> EncryptAsync(this WsStream stream, ECParameters parameters)
         {
             ECDsa ecDsa = ECDsa.Create(parameters);

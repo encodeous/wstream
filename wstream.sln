@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "samples", "samples\samples.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "wstream.Crypto", "wstream.Crypto\wstream.Crypto.csproj", "{40326317-E3F1-46EF-805A-7652DB603056}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "wstream.Tests", "wstream.Tests\wstream.Tests.csproj", "{1CBB8AE0-49E6-49D0-9162-13A49B7D0423}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{40326317-E3F1-46EF-805A-7652DB603056}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{40326317-E3F1-46EF-805A-7652DB603056}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{40326317-E3F1-46EF-805A-7652DB603056}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CBB8AE0-49E6-49D0-9162-13A49B7D0423}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CBB8AE0-49E6-49D0-9162-13A49B7D0423}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CBB8AE0-49E6-49D0-9162-13A49B7D0423}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CBB8AE0-49E6-49D0-9162-13A49B7D0423}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
