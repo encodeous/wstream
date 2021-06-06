@@ -48,54 +48,48 @@ namespace wstream.Crypto
             while (j < nonce.Length && ++nonce[j++] == 0) { }
         }
 
-        public override async Task<int> ReadAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        public override async Task<int> ReadAsync(ArraySegment<byte> buffer,
+            CancellationToken cancellationToken = new CancellationToken())
         {
             // TODO: Harden security (prevent abuse, double check everything)
-            int offset = 0;
             int len = buffer.Count;
-            while (len > 0)
+            int rem = 0;
+            if (_currentPacket.Buffer is not null)
             {
-                int rem = 0;
-                if (_currentPacket.Buffer is not null)
-                {
-                    rem = _currentPacket.BufferLength - _currentPacket.Position;
-                }
-                // check if remaining crypto buffer is enough to fill read buffer
-                if (rem < len)
-                {
-                    // not enough
-                    if (_currentPacket.Buffer is not null)
-                    {
-                        new ArraySegment<byte>(_currentPacket.Buffer, _currentPacket.Position, rem).CopyTo(buffer[offset..]);
-                        ArrayPool<byte>.Shared.Return(_currentPacket.Buffer);
-                    }
-                    // read packet
-                    _currentPacket.BufferLength = await ReadIntAsync(cancellationToken);
-                    _currentPacket.Position = 0;
-                    // read tag
-                    await ReadBytesAsync(_currentPacket.Tag, cancellationToken);
-                    // read whole buffer (required)
-                    _currentPacket.Buffer = ArrayPool<byte>.Shared.Rent(_currentPacket.BufferLength);
-                    var tBuf = ArrayPool<byte>.Shared.Rent(_currentPacket.BufferLength);
-                    var tBufSeg = new ArraySegment<byte>(tBuf, 0, _currentPacket.BufferLength);
-                    await ReadBytesAsync(tBufSeg, cancellationToken);
-                    // decrypt aes
-                    var uBufSeg = new ArraySegment<byte>(_currentPacket.Buffer, 0, _currentPacket.BufferLength);
-                    _aes.Decrypt(_readNonce, tBufSeg, _currentPacket.Tag, uBufSeg);
-                    IncrementNonce(_readNonce);
-                    ArrayPool<byte>.Shared.Return(tBuf);
-                }
-                else
-                {
-                    // fill buffer and advance position
-                    new ArraySegment<byte>(_currentPacket.Buffer, _currentPacket.Position, len).CopyTo(buffer[offset..]);
-                    _currentPacket.Position += len;
-                }
-                offset += rem;
-                len -= rem;
+                rem = _currentPacket.BufferLength - _currentPacket.Position;
             }
 
-            return buffer.Count;
+            // check if remaining crypto buffer is enough to fill read buffer
+            if (rem <= 0)
+            {
+                // not enough
+                if (_currentPacket.Buffer is not null)
+                {
+                    ArrayPool<byte>.Shared.Return(_currentPacket.Buffer);
+                }
+
+                // read packet
+                _currentPacket.BufferLength = await ReadIntAsync(cancellationToken);
+                _currentPacket.Position = 0;
+                // read tag
+                await ReadBytesAsync(_currentPacket.Tag, cancellationToken);
+                // read whole buffer (required)
+                _currentPacket.Buffer = ArrayPool<byte>.Shared.Rent(_currentPacket.BufferLength);
+                var tBuf = ArrayPool<byte>.Shared.Rent(_currentPacket.BufferLength);
+                var tBufSeg = new ArraySegment<byte>(tBuf, 0, _currentPacket.BufferLength);
+                await ReadBytesAsync(tBufSeg, cancellationToken);
+                // decrypt aes
+                var uBufSeg = new ArraySegment<byte>(_currentPacket.Buffer, 0, _currentPacket.BufferLength);
+                _aes.Decrypt(_readNonce, tBufSeg, _currentPacket.Tag, uBufSeg);
+                IncrementNonce(_readNonce);
+                ArrayPool<byte>.Shared.Return(tBuf);
+                return await ReadAsync(buffer, cancellationToken);
+            }
+            
+            // fill buffer and advance position
+            new ArraySegment<byte>(_currentPacket.Buffer, _currentPacket.Position, Math.Min(len, rem)).CopyTo(buffer);
+            _currentPacket.Position += Math.Min(len, rem);
+            return rem;
         }
 
         private byte[] _rBuf = new byte[4];
