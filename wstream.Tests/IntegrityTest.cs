@@ -46,14 +46,14 @@ namespace wstream.Tests
         {
             // create the server
             var server = new WsServer();
-            server.StartAsync(new IPEndPoint(IPAddress.Loopback, 8080), async stream =>
+            server.StartAsync(new IPEndPoint(IPAddress.Loopback, 0), async stream =>
             {
                 Server = stream;
             }).GetAwaiter().GetResult();
 
             // start client
             var client = new WsClient();
-            Client = client.ConnectAsync(new Uri("ws://localhost:8080")).GetAwaiter().GetResult();
+            Client = client.ConnectAsync(new Uri("ws://"+server.ListeningAddresses[0].Substring(7))).GetAwaiter().GetResult();
             Thread.Sleep(1000);
             Reader = new AsyncBinaryReader(Client);
             Writer = new AsyncBinaryWriter(Server);

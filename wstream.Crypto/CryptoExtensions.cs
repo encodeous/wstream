@@ -78,7 +78,7 @@ namespace wstream.Crypto
         /// <returns></returns>
         public static Task<ECPoint> EncryptAsync(this WsStream stream)
         {
-            return EncryptAsync(stream, ECDsa.Create(ECCurve.CreateFromFriendlyName("secp384r1")));
+            return EncryptAsync(stream, ECDsa.Create(ECCurve.CreateFromFriendlyName("secp384r1")).ExportParameters(true));
         }
         /// <summary>
         /// Establishes encryption in the current socket. It is required that both the client and server call this!
@@ -88,14 +88,8 @@ namespace wstream.Crypto
         /// </remarks>
         /// <param name="stream"></param>
         /// <param name="parameters">ECDSA public / private keypair used for signing</param>
-        /// <returns></returns>
-        public static Task<ECPoint> EncryptAsync(this WsStream stream, ECParameters parameters)
-        {
-            ECDsa ecDsa = ECDsa.Create(parameters);
-            return EncryptAsync(stream, ecDsa);
-        }
-        
-        public static async Task<ECPoint> EncryptAsync(this WsStream stream, ECDsa parameters)
+        /// <returns>The fingerprint (public key) of the remote</returns>
+        public static async Task<ECPoint> EncryptAsync(this WsStream stream, ECParameters parameters)
         {
             var (secret, fingerprint) = await ExchangeKeyAsync(stream, parameters);
             // wrap stream
@@ -104,8 +98,18 @@ namespace wstream.Crypto
             return fingerprint;
         }
 
-        private static async Task<(byte[], ECPoint)> ExchangeKeyAsync(this WsStream stream, ECDsa ecDsa)
+        /// <summary>
+        /// Securely exchanges a secret key
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="ecParams">ECDSA public / private keypair used for signing</param>
+        /// <returns>A tuple containing a 256 bit hashed secret key, and the fingerprint of the remote</returns>
+        /// <exception cref="CryptographicException"></exception>
+        /// <exception cref="InvalidDataException">Thrown when the remote sends invalid data</exception>
+        public static async Task<(byte[], ECPoint)> ExchangeKeyAsync(this WsStream stream, ECParameters ecParams)
         {
+            if (ecParams.D is null) throw new CryptographicException("Private key must be provided");
+            ECDsa ecDsa = ECDsa.Create(ecParams);
             // TODO: Harden security (prevent abuse, double check everything)
             // host authentication
             var pubBytes = ecDsa.ExportSubjectPublicKeyInfo();
@@ -132,12 +136,12 @@ namespace wstream.Crypto
             // read remote public key and verify signature
             //1
             var remotePubKey = ECDsa.Create();
-            var remotePubBytes = await br.ReadBytesAsync(await br.ReadInt32Async());
+            var remotePubBytes = await br.ReadBytesAsync(await br.ReadAssertAsync(120));
             remotePubKey.ImportSubjectPublicKeyInfo(remotePubBytes, out _);
             //2
-            var remoteSignature = await br.ReadBytesAsync(await br.ReadInt32Async());
+            var remoteSignature = await br.ReadBytesAsync(await br.ReadAssertAsync(96));
             //3
-            var remoteKePub = await br.ReadBytesAsync(await br.ReadInt32Async());
+            var remoteKePub = await br.ReadBytesAsync(await br.ReadAssertAsync(158));
 
             var remoteEcdh = ECDiffieHellman.Create();
             remoteEcdh.ImportSubjectPublicKeyInfo(remoteKePub, out _);
@@ -152,5 +156,14 @@ namespace wstream.Crypto
             // return the public key (fingerprint) of the remote, and the hashed shared secret
             return (SHA256.HashData(sharedSecret), remotePubKey.ExportParameters(false).Q);
         }
+        
+        /// <exception cref="InvalidDataException"></exception>
+        private static async Task<int> ReadAssertAsync(this AsyncBinaryReader br, int expected)
+        {
+            int x = await br.ReadInt32Async();
+            if (x != expected) throw new InvalidDataException("The remote sent an unexpected result.");
+            return x;
+        }
+        
     }
 }

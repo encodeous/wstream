@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting.Internal;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets;
 using Microsoft.Extensions.Logging;
@@ -14,6 +16,7 @@ namespace wstream
     public class WsServer : IDisposable
     {
         public bool IsListening { get; private set; }
+        public string[] ListeningAddresses { get; private set; }
         private CancellationTokenSource _stopSource;
         private KestrelServer _server;
 
@@ -38,7 +41,14 @@ namespace wstream
             // start kestrel
             _server = new KestrelServer(Options.Create(kestrelOptions),socketTransportFactory, logger);
             _server.Options.Listen(endpoint);
-            return _server.StartAsync(new KestrelRequestHandler(connectionAdded, bufferSize, _stopSource.Token, defaultPage), CancellationToken.None);
+            return _server
+                .StartAsync(new KestrelRequestHandler(connectionAdded, bufferSize, _stopSource.Token, defaultPage),
+                    CancellationToken.None).ContinueWith(
+                    x =>
+                    {
+                        var addr = _server.Features.Get<IServerAddressesFeature>();
+                        ListeningAddresses = addr.Addresses.ToArray();
+                    });
         }
 
         /// <summary>

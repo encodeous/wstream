@@ -32,7 +32,7 @@ namespace wstream
             CloseCallback();
             _socket.Dispose();
         }
-
+        
         public override async Task<int> ReadAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
             var res = await _socket.ReceiveAsync(buffer, cancellationToken);

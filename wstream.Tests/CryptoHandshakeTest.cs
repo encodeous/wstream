@@ -13,25 +13,26 @@ namespace wstream.Tests
 {
     public class CryptoHandshakeTest
     {
-        [Theory]
-        [Repeat(10)]
-        public async Task ValidateCryptoHandshake(int i)
+        [Fact]
+        public async Task ValidateCryptoHandshake()
         {
             var server = new WsServer();
             var serverKey = CryptoExtensions.GenerateKey();
             var clientKey = CryptoExtensions.GenerateKey();
             ECPoint serverPub, clientPub = new ECPoint();
-            await server.StartAsync(new IPEndPoint(IPAddress.Loopback, 8082), async stream =>
+            await server.StartAsync(new IPEndPoint(IPAddress.Loopback, 0), async stream =>
             {
                 clientPub = await stream.EncryptAsync(serverKey);
             });
-
+            
+            await Task.Delay(500);
+            
             // start client
             var client = new WsClient();
-            var conn = await client.ConnectAsync(new Uri($"ws://localhost:8082"));
+            var conn = await client.ConnectAsync(new Uri($"ws://"+server.ListeningAddresses[0].Substring(7)));
             serverPub = await conn.EncryptAsync(clientKey);
 
-            await Task.Delay(1000);
+            await Task.Delay(500);
             
             Assert.Equal(serverKey.Q.X, serverPub.X);
             Assert.Equal(clientKey.Q.X, clientPub.X);

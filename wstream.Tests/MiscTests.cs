@@ -50,7 +50,7 @@ namespace wstream.Tests
         {
             InterceptData clientData = null, serverData = null;
             var server = new WsServer();
-            await server.StartAsync(new IPEndPoint(IPAddress.Loopback, 8084), async stream =>
+            await server.StartAsync(new IPEndPoint(IPAddress.Loopback, 0), async stream =>
             {
                 await stream.WrapSocketAsync(x =>
                     Task.FromResult<WStreamSocket>(new Interceptor(x, out serverData))
@@ -64,7 +64,7 @@ namespace wstream.Tests
             });
             
             var client = new WsClient();
-            var connection = await client.ConnectAsync(new Uri("ws://localhost:8084"));
+            var connection = await client.ConnectAsync(new Uri("ws://"+server.ListeningAddresses[0].Substring(7)));
             await connection.WrapSocketAsync(x =>
                 Task.FromResult<WStreamSocket>(new Interceptor(x, out clientData))
             );

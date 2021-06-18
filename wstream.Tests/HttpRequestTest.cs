@@ -13,17 +13,16 @@ namespace wstream.Tests
         private WsServer _server;
 
         public string ExpectedResult;
-        
+        public string Url;
+
         public HttpRequestTestFixture()
         {
             ExpectedResult = "WStream.Tests - HttpRequestTest";
-            _server = new WsServer();
-            _server.StartAsync(new IPEndPoint(IPAddress.Loopback, 8083), async stream 
-                => throw new Exception("Client should not have been able to connect!"), defaultPage:ExpectedResult).GetAwaiter().GetResult();
-        }
-        public void Initialize(string s)
-        {
             
+            _server = new WsServer();
+            _server.StartAsync(new IPEndPoint(IPAddress.Loopback, 0), async stream 
+                => throw new Exception("Client should not have been able to connect!"), defaultPage:ExpectedResult).GetAwaiter().GetResult();
+            Url = _server.ListeningAddresses[0];
         }
         public void Dispose()
         {
@@ -45,7 +44,7 @@ namespace wstream.Tests
             {
                 for (int i = 0; i < 1000; i++)
                 {
-                    var result = await "http://localhost:8083".GetStringAsync();
+                    var result = await (_fixture.Url).GetStringAsync();
                     Assert.Equal(_fixture.ExpectedResult, result);
                 }
             });
