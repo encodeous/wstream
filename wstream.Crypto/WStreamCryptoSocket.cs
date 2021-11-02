@@ -18,13 +18,13 @@ namespace wstream.Crypto
         public byte[] Buffer;
         public int Position;
     }
-    public class WStreamCryptoSocket : WStreamSocket
+    public class WStreamAesSocket : WStreamSocket
     {
         private AesGcm _aes;
         private byte[] _readNonce;
         private byte[] _writeNonce;
         private CryptoPacketState _currentPacket;
-        public WStreamCryptoSocket(WStreamSocket baseSocket, byte[] sharedSecret) : base(baseSocket)
+        public WStreamAesSocket(WStreamSocket baseSocket, byte[] sharedSecret) : base(baseSocket)
         {
             _readNonce = new byte[12];
             _writeNonce = new byte[12];

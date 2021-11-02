@@ -2,6 +2,18 @@
 
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Authors>Encodeous</Authors>
+        <Description>Provides experimental crypto for wstream</Description>
+        <PackageProjectUrl>https://github.com/encodeous/wstream</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/encodeous/wstream</RepositoryUrl>
+        <Title>WStream.Crypto</Title>
+        <Version>2.1.1</Version>
+        <RootNamespace>wstream.Crypto</RootNamespace>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageTags>WebSockets;Streams;Standalone;Kestrel;cryptography</PackageTags>
+        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+        <LangVersion>9</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>

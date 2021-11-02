@@ -69,7 +69,7 @@ namespace wstream.Crypto
         }
 
         /// <summary>
-        /// Establishes encryption in the current socket. It is required that both the client and server call this!
+        /// Establishes asymmetrical encryption in the current socket. It is required that both the client and server call this!
         /// <remarks>
         /// This method overload will create a random ECDSA signing key every time it is called. It is highly recommended to use fixed keys and validate the returned fingerprint with a trusted store.
         /// </remarks>
@@ -81,7 +81,7 @@ namespace wstream.Crypto
             return EncryptAsync(stream, ECDsa.Create(ECCurve.CreateFromFriendlyName("secp384r1")).ExportParameters(true));
         }
         /// <summary>
-        /// Establishes encryption in the current socket. It is required that both the client and server call this!
+        /// Establishes asymmetrical encryption in the current socket. It is required that both the client and server call this!
         /// </summary>
         /// <remarks>
         /// It is highly recommended to validate the returned fingerprint with a trusted store.
@@ -94,8 +94,21 @@ namespace wstream.Crypto
             var (secret, fingerprint) = await ExchangeKeyAsync(stream, parameters);
             // wrap stream
             await stream.WrapSocketAsync(x => 
-                Task.FromResult<WStreamSocket>(new WStreamCryptoSocket(x, secret)));
+                Task.FromResult<WStreamSocket>(new WStreamAesSocket(x, secret)));
             return fingerprint;
+        }
+        
+        /// <summary>
+        /// Establishes symmetrical encryption in the current socket using AES-256 GCM. It is required that both the client and server call this!
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="key">Any sequence of bytes, will be hashed with SHA256</param>
+        /// <returns></returns>
+        public static async Task EncryptAesAsync(this WsStream stream, byte[] key)
+        {
+            // wrap stream
+            await stream.WrapSocketAsync(x => 
+                Task.FromResult<WStreamSocket>(new WStreamAesSocket(x, SHA256.HashData(key))));
         }
 
         /// <summary>
