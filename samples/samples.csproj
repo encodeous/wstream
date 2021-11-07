@@ -6,13 +6,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\wstream.Crypto\wstream.Crypto.csproj" />
-    <ProjectReference Include="..\wstream\wstream.csproj" />
+    <PackageReference Include="Heijden.Dns" Version="2.0.0" />
+    <PackageReference Include="System.IO.Pipelines" Version="5.0.1" />
+    <PackageReference Include="wstream" Version="2.1.1" />
+    <PackageReference Include="wstream.Crypto" Version="2.1.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Heijden.Dns" Version="2.0.0" />
-    <PackageReference Include="System.IO.Pipelines" Version="5.0.1" />
+    <ProjectReference Include="..\wstream.Crypto\wstream.Crypto.csproj" />
+    <ProjectReference Include="..\wstream\wstream.csproj" />
   </ItemGroup>
-
 </Project>

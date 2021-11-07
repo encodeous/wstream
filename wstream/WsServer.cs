@@ -3,7 +3,6 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets;
@@ -36,10 +35,10 @@ namespace wstream
             // setup kestrel parameters
             var logger = new NullLoggerFactory();
             var kestrelOptions = new KestrelServerOptions();
-            var lifetime = new ApplicationLifetime(logger.CreateLogger<ApplicationLifetime>());
+            var lifetime = new ApplicationLifetime();
             var socketTransportFactory = new SocketTransportFactory(Options.Create(new SocketTransportOptions()), lifetime, logger);
             // start kestrel
-            _server = new KestrelServer(Options.Create(kestrelOptions),socketTransportFactory, logger);
+            _server = new KestrelServer(Options.Create(kestrelOptions), socketTransportFactory, logger);
             _server.Options.Listen(endpoint);
             return _server
                 .StartAsync(new KestrelRequestHandler(connectionAdded, bufferSize, _stopSource.Token, defaultPage),

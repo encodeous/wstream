@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO;
-using System.IO.Pipelines;
-using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -48,7 +44,7 @@ namespace wstream.Crypto
             while (j < nonce.Length && ++nonce[j++] == 0) { }
         }
 
-        public override async Task<int> ReadAsync(ArraySegment<byte> buffer,
+        public override async ValueTask<int> ReadAsync(ArraySegment<byte> buffer,
             CancellationToken cancellationToken = new CancellationToken())
         {
             // TODO: Harden security (prevent abuse, double check everything)
@@ -100,7 +96,7 @@ namespace wstream.Crypto
             return BitConverter.ToInt32(_rBuf);
         }
 
-        private async Task ReadBytesAsync(ArraySegment<byte> result, CancellationToken cancellationToken = default(CancellationToken))
+        private async ValueTask ReadBytesAsync(ArraySegment<byte> result, CancellationToken cancellationToken = default(CancellationToken))
         {
             int count = result.Count;
             do
@@ -117,7 +113,7 @@ namespace wstream.Crypto
             } while (count > 0);
         }
 
-        public override Task WriteAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        public override async ValueTask WriteAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
             var buf = ArrayPool<byte>.Shared.Rent(buffer.Count + 20);
             var ctext = new ArraySegment<byte>(buf, 20, buffer.Count);
@@ -128,14 +124,8 @@ namespace wstream.Crypto
                 _aes.Encrypt(_writeNonce, buffer, ctext, tag);
                 IncrementNonce(_writeNonce);
             }
-
-            async Task Send()
-            {
-                await WrappedSocket.WriteAsync(new ArraySegment<byte>(buf, 0, buffer.Count + 20), cancellationToken);
-                ArrayPool<byte>.Shared.Return(buf);
-            }
-
-            return Send();
+            await WrappedSocket.WriteAsync(new ArraySegment<byte>(buf, 0, buffer.Count + 20), cancellationToken);
+            ArrayPool<byte>.Shared.Return(buf);
         }
     }
 }

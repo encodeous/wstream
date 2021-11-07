@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Buffers;
 using System.IO;
-using System.Net.WebSockets;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -56,7 +53,7 @@ namespace wstream
         /// <param name="buffer">destination buffer</param>
         /// <param name="cancellationToken"></param>
         /// <returns>the number of bytes read, 0 if the connection has closed</returns>
-        public virtual Task<int> ReadAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        public virtual ValueTask<int> ReadAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
             return WrappedSocket.ReadAsync(buffer, cancellationToken);
         }
@@ -67,7 +64,7 @@ namespace wstream
         /// <param name="buffer">the source buffer</param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public virtual Task WriteAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        public virtual ValueTask WriteAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
             return WrappedSocket.WriteAsync(buffer, cancellationToken);
         }
@@ -95,12 +92,12 @@ namespace wstream
         }
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            return ReadAsync(new ArraySegment<byte>(buffer, offset, count), cancellationToken);
+            return ReadAsync(new ArraySegment<byte>(buffer, offset, count), cancellationToken).AsTask();
         }
 
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            return WriteAsync(new ArraySegment<byte>(buffer, offset, count), cancellationToken);
+            return WriteAsync(new ArraySegment<byte>(buffer, offset, count), cancellationToken).AsTask();
         }
         public override void Write(byte[] buffer, int offset, int count)
         {

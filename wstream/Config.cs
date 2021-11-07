@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace wstream
+﻿namespace wstream
 {
     public static class Config
     {

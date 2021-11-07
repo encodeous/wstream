@@ -31,14 +31,14 @@ namespace samples
             return WrappedSocket.CloseAsync();
         }
 
-        public override async Task<int> ReadAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        public override async ValueTask<int> ReadAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
             int len = await WrappedSocket.ReadAsync(buffer, cancellationToken);
             _data.BytesRead += len;
             return len;
         }
 
-        public override Task WriteAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        public override ValueTask WriteAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
             _data.BytesWritten += buffer.Count;
             return WrappedSocket.WriteAsync(buffer, cancellationToken);

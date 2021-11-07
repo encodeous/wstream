@@ -33,7 +33,7 @@ namespace wstream
             _socket.Dispose();
         }
         
-        public override async Task<int> ReadAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        public override async ValueTask<int> ReadAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
             var res = await _socket.ReceiveAsync(buffer, cancellationToken);
             if (res.CloseStatus != null)
@@ -44,9 +44,9 @@ namespace wstream
             return res.Count;
         }
 
-        public override Task WriteAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+        public override async ValueTask WriteAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
         {
-            return _socket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
+            await _socket.SendAsync(buffer, WebSocketMessageType.Binary, true, cancellationToken);
         }
     }
 }

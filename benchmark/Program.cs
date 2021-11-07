@@ -12,13 +12,13 @@ WsServer server = new WsServer();
 
 Console.WriteLine("Starting wstream Benchmark with Crypto enabled...");
 
-await ClientThread(4 * 1024,   (long)(0.7 * 1073741274L));
-await ClientThread(16 * 1024,  (3 * 1073741274L));
-await ClientThread(32 * 1024,  (3 * 1073741274L));
-await ClientThread(60000,  (3 * 1073741274L));
+//await ClientThread(4 * 1024,   (long)(0.7 * 1073741274L));
+//await ClientThread(16 * 1024,  (3 * 1073741274L));
+//await ClientThread(32 * 1024,  (3 * 1073741274L));
+//await ClientThread(60000,  (3 * 1073741274L));
 await ClientThread(64 * 1024,  (3 * 1073741274L));
-await ClientThread(128 * 1024, (3 * 1073741274L));
-await ClientThread(256 * 1024, (3 * 1073741274L));
+//await ClientThread(128 * 1024, (3 * 1073741274L));
+//await ClientThread(256 * 1024, (3 * 1073741274L));
 // // 4k - 10k
 // for (int i = 4; i <= 10; i++)
 // {
@@ -35,9 +35,9 @@ await ClientThread(256 * 1024, (3 * 1073741274L));
 //     await ClientThread(i * 1024, (5 * 1073741274L));
 // }
 
-Console.WriteLine("\n\nStarting endurance test... sending 500gb over network, this will take a while");
+//Console.WriteLine("\n\nStarting endurance test... sending 500gb over network, this will take a while");
 
-await ClientThread(65536, 500 * 1073741274L);
+//await ClientThread(65536, 500 * 1073741274L);
 
 byte[] buffer;
 

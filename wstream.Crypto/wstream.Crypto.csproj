@@ -8,21 +8,26 @@
         <PackageProjectUrl>https://github.com/encodeous/wstream</PackageProjectUrl>
         <RepositoryUrl>https://github.com/encodeous/wstream</RepositoryUrl>
         <Title>WStream.Crypto</Title>
-        <Version>2.1.1</Version>
+        <Version>2.1.3</Version>
         <RootNamespace>wstream.Crypto</RootNamespace>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageTags>WebSockets;Streams;Standalone;Kestrel;cryptography</PackageTags>
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
         <LangVersion>9</LangVersion>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\wstream\wstream.csproj" />
+      <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="Overby.Extensions.AsyncBinaryReaderWriter" Version="1.0.39" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Overby.Extensions.AsyncBinaryReaderWriter" Version="1.0.39" />
-      <PackageReference Include="System.IO.Pipelines" Version="5.0.1" />
+      <ProjectReference Include="..\wstream\wstream.csproj" />
     </ItemGroup>
 
 </Project>
