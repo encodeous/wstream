@@ -35,8 +35,12 @@ namespace wstream
             // setup kestrel parameters
             var logger = new NullLoggerFactory();
             var kestrelOptions = new KestrelServerOptions();
+            #if NETSTANDARD2_0
             var lifetime = new ApplicationLifetime();
             var socketTransportFactory = new SocketTransportFactory(Options.Create(new SocketTransportOptions()), lifetime, logger);
+            #else
+            var socketTransportFactory = new SocketTransportFactory(Options.Create(new SocketTransportOptions()), logger);
+            #endif
             // start kestrel
             _server = new KestrelServer(Options.Create(kestrelOptions), socketTransportFactory, logger);
             _server.Options.Listen(endpoint);

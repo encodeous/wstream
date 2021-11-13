@@ -2,12 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>wstreambench</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\wstream.Crypto\wstream.Crypto.csproj" />
     <ProjectReference Include="..\wstream\wstream.csproj" />
   </ItemGroup>
 
