@@ -46,9 +46,18 @@ server.Dispose();
 
 ## Performance
 
-All benchmarks are run on a Windows 10 machine with an Intel i7-6700K CPU and 32GB of RAM, running on `Release`. Each test sends 5 gigabytes of data over the loopback connection.
+All benchmarks (prior to .NET 8) are run on a Windows 10 machine with an Intel i7-6700K CPU and 32GB of RAM, running on `Release`. Each test sends 5 gigabytes of data over the loopback connection.
+
+The .NET 8 benchmarks are run on a Windows 11 machine with an Ryzen 9 7900x CPU with 64GB of RAM. (Thus the results cannot be compared across the two tables)
 
 The results vary depending on the version of .NET used. Here are the results of the benchmarks, sorted in descending throughput:
+
+| .NET Version | Packet Size | Packets Per Second | Throughput |
+| ------------ | ------------ | ------------------ | ---------- |
+| .NET 8.0.0 | 262,144 | 6,192.41 msg/s | 1,623.26 MB/s |
+| .NET 8.0.0 | 65,536 | 23,675.68 msg/s | 1,551.61 MB/s |
+| .NET 8.0.0 | 131,072 | 9,302.29 msg/s | 1,219.27 MB/s |
+| .NET 8.0.0 | 8,192 | 82,673.11 msg/s | 677.26 MB/s |
 
 | .NET Version | Packet Size | Packets Per Second | Throughput |
 | ------------ | ------------ | ------------------ | ---------- |
